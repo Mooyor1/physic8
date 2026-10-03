@@ -1,0 +1,2414 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>การเคลื่อนที่แนวโค้ง — โพรเจกไทล์และวงกลม</title>
+<style>
+  :root {
+    --bg: #071016;
+    --panel: #0d1c26;
+    --ink: #e7f4f1;
+    --muted: #8eafb8;
+    --line: rgba(150, 196, 204, .2);
+    --teal: #2ee6c7;
+    --teal-dim: rgba(46, 230, 199, .14);
+    --amber: #fbbf24;
+    --coral: #fb7185;
+    --card: #102430;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    font-family: "Leelawadee UI", "Segoe UI", Tahoma, sans-serif;
+  }
+  button, input { font-family: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  [hidden] { display: none !important; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 12px 16px 0;
+  }
+  h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 700; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .pill {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #d5ece8;
+    background: #0c1a22;
+  }
+  .layout {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 330px;
+    gap: 12px;
+    padding: 12px;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(16, 40, 52, .96), rgba(10, 24, 34, .96));
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    min-height: 0;
+    overflow: auto;
+  }
+  .center { display: flex; flex-direction: column; padding: 10px; }
+  .sec { margin: 0 0 12px; }
+  .sec h2 { margin: 0 0 8px; font-size: 13px; font-weight: 650; color: var(--muted); }
+  .modes, .scenarios { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .modes button, .scenarios button, .transport button, .speeds button, .chips button {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .modes button { padding: 8px; text-align: left; }
+  .modes button small, .scenarios button small { display: block; color: var(--muted); font-size: 11px; }
+  .modes button.on, .scenarios button.on, .speeds button.on {
+    border-color: var(--teal);
+    background: var(--teal-dim);
+  }
+  .scenarios button { padding: 7px 8px; }
+  .hint { color: #9ec4cc; font-size: 12.5px; line-height: 1.45; margin: 8px 0 0; }
+  .ctrl { display: block; margin: 0 0 8px; }
+  .top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .top b { font-family: Consolas, "Courier New", monospace; color: #7ef0dc; font-weight: 650; }
+  input[type="range"] { width: 100%; accent-color: var(--teal); height: 26px; }
+  .switch { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; cursor: pointer; }
+  .switch input {
+    appearance: none;
+    width: 36px;
+    height: 20px;
+    border-radius: 99px;
+    background: #29424d;
+    position: relative;
+    flex: none;
+    margin: 0;
+  }
+  .switch input::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: transform .15s ease;
+  }
+  .switch input:checked { background: #149e8c; }
+  .switch input:checked::after { transform: translateX(16px); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
+  .calcbox { background: #102a30; border-radius: 10px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+  .calcbox b { display: block; font-family: Consolas, monospace; color: #7ef0dc; font-size: 18px; }
+  .transport { position: sticky; bottom: 0; padding-top: 8px; background: linear-gradient(180deg, transparent, #0c1a24 28%); }
+  .row { display: flex; gap: 8px; }
+  .row button, .speeds button { flex: 1; padding: 8px; }
+  .speeds { display: flex; gap: 6px; margin-top: 8px; }
+  .keyhint { color: var(--muted); font-size: 11px; margin: 6px 0 0; }
+  .canvas-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 360px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #07141c;
+  }
+  #sim { width: 100%; height: 100%; display: block; }
+  .banner {
+    position: absolute;
+    z-index: 2;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 28px);
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(8, 16, 24, .82);
+    border: 1px solid rgba(255, 255, 255, .16);
+    font-size: 13px;
+    pointer-events: none;
+    text-align: center;
+  }
+  .banner.warn { border-color: var(--amber); color: #ffe7a3; }
+  .banner.bad { border-color: var(--coral); color: #ffd5dc; }
+  .banner.good { border-color: var(--teal); color: #d8fff6; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend i { display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; }
+  .readout {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .stat { background: #0c1c26; border-radius: 10px; padding: 6px 8px; min-width: 0; }
+  .stat span { display: block; color: var(--muted); font-size: 11px; }
+  .stat b {
+    display: block;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 16px;
+    color: #7ef0dc;
+    font-weight: 650;
+  }
+  .stat em { font-style: normal; color: #9ec4cc; font-size: 11px; }
+  .stat.hot b { color: var(--amber); }
+  .stat.alert b { color: var(--coral); }
+  .progress { height: 4px; background: #102430; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+  #prog { height: 100%; width: 0; background: linear-gradient(90deg, var(--teal), var(--amber)); }
+  .eq {
+    margin-top: 8px;
+    background: #0c1c26;
+    border-radius: 10px;
+    padding: 8px 10px;
+    max-height: 138px;
+    overflow: auto;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #d7efeb;
+  }
+  .gcard { height: 198px; margin-bottom: 8px; }
+  .gcard canvas { width: 100%; height: 100%; display: block; border-radius: 10px; }
+  .big {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+    gap: 6px;
+  }
+  .big div { background: #0c1c26; border-radius: 10px; padding: 7px; }
+  .big span { display: block; color: var(--muted); font-size: 11px; }
+  .big b { font-family: Consolas, monospace; font-size: 16px; color: #7ef0dc; }
+  .notes { margin: 8px 0 0; padding-left: 18px; color: #d0e4e8; font-size: 13px; line-height: 1.5; }
+  .miscon { border-radius: 12px; padding: 12px; background: #1a2430; border: 1px solid rgba(251, 191, 36, .45); }
+  .miscon.bad { border-color: rgba(251, 113, 133, .65); background: #2a1520; }
+  .miscon.good { border-color: rgba(46, 230, 199, .5); background: #102824; }
+  .tag { font-size: 11px; color: var(--amber); }
+  .miscon h3 { margin: 4px 0 6px; font-size: 15px; }
+  .miscon p { margin: 0; color: #d5e4ea; font-size: 13.5px; line-height: 1.55; }
+  @media (min-width: 1101px) {
+    body { height: 100dvh; overflow: hidden; }
+  }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr 1fr; height: auto; }
+    .center { grid-column: 1 / -1; order: -1; }
+    .canvas-wrap { height: 460px; flex: none; }
+  }
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+    .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    h1 { font-size: 18px; }
+    .pills { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>การเคลื่อนที่แนวโค้ง</h1>
+    <p>โพรเจกไทล์และการเคลื่อนที่แบบวงกลม · ม.4–ม.6</p>
+  </div>
+  <div class="pills">
+    <div class="pill" id="statusPill">พร้อม</div>
+    <div class="pill">g = 9.81 m/s²</div>
+  </div>
+</header>
+<main class="layout">
+  <section class="panel" aria-label="แผงควบคุม">
+    <div class="sec">
+      <h2>โหมดการจำลอง</h2>
+      <div class="modes">
+        <button type="button" class="on" data-mode="1">โพรเจกไทล์<small>พื้นราบ</small></button>
+        <button type="button" data-mode="2">แรงต้านอากาศ<small>เทียบพาราโบลา</small></button>
+        <button type="button" data-mode="3">วงกลม<small>แนวระดับ</small></button>
+        <button type="button" data-mode="4">การประยุกต์<small>รถโค้ง · ตุ้มกรวย</small></button>
+      </div>
+      <p class="hint" id="modeHint"></p>
+    </div>
+    <div class="sec" id="grpScenario" hidden>
+      <h2>สถานการณ์</h2>
+      <div class="scenarios">
+        <button type="button" class="on" data-sc="level">โค้งราบ<small>แรงเสียดทาน</small></button>
+        <button type="button" data-sc="bank">โค้งเอียง<small>มุมถนน θ</small></button>
+        <button type="button" data-sc="conical">ลูกตุ้มกรวย<small>แรงตึง</small></button>
+        <button type="button" data-sc="wall">รถไต่ถัง<small>ถังมรณะ</small></button>
+      </div>
+    </div>
+    <div class="sec">
+      <h2>ตัวแปรตั้งต้น</h2>
+      <label class="ctrl" id="grpU">
+        <span class="top"><span>ความเร็วต้น u</span><span><b id="uVal">20.0</b> m/s</span></span>
+        <input id="u" type="range" min="1" max="50" step="1" value="20">
+      </label>
+      <label class="ctrl" id="grpTheta">
+        <span class="top"><span id="thetaName">มุมยิง θ</span><span><b id="thetaVal">45</b> °</span></span>
+        <input id="theta" type="range" min="0" max="90" step="5" value="45">
+      </label>
+      <label class="ctrl" id="grpH">
+        <span class="top"><span>ความสูงเริ่มต้น h₀</span><span><b id="h0Val">0.0</b> m</span></span>
+        <input id="h0" type="range" min="0" max="30" step="1" value="0">
+      </label>
+      <label class="ctrl" id="grpR" hidden>
+        <span class="top"><span id="rName">รัศมี r</span><span><b id="rVal">5.0</b> m</span></span>
+        <input id="r" type="range" min="1" max="20" step="0.5" value="5">
+      </label>
+      <label class="ctrl" id="grpM" hidden>
+        <span class="top"><span>มวล m</span><span><b id="mVal">1.0</b> kg</span></span>
+        <input id="m" type="range" min="0.1" max="10" step="0.1" value="1">
+      </label>
+      <label class="ctrl" id="grpK" hidden>
+        <span class="top"><span>สัมประสิทธิ์แรงต้าน k</span><span><b id="kVal">0.00</b> kg/s</span></span>
+        <input id="k" type="range" min="0" max="0.5" step="0.01" value="0">
+      </label>
+      <label class="ctrl" id="grpMu" hidden>
+        <span class="top"><span>สัมประสิทธิ์ความเสียดทาน μ</span><span><b id="muVal">0.00</b></span></span>
+        <input id="mu" type="range" min="0" max="0.5" step="0.01" value="0">
+      </label>
+      <label class="ctrl" id="grpV" hidden>
+        <span class="top"><span>อัตราเร็วเชิงเส้น v</span><span><b id="vVal">20.0</b> m/s</span></span>
+        <input id="v" type="range" min="1" max="50" step="1" value="20">
+      </label>
+      <label class="ctrl" id="grpOmega" hidden>
+        <span class="top"><span>อัตราเร็วเชิงมุม ω</span><span><b id="omegaVal">4.00</b> rad/s</span></span>
+        <input id="omega" type="range" min="0.05" max="20" step="0.05" value="4">
+      </label>
+      <div class="calcbox" id="grpVcalc" hidden>อัตราเร็วจากมุม (คำนวณ)<b id="vCalc">0.00 m/s</b></div>
+      <div class="chips" id="presets"></div>
+    </div>
+    <div class="sec">
+      <h2>เวกเตอร์</h2>
+      <label class="switch"><input id="showV" type="checkbox" checked><span>แสดงเวกเตอร์ความเร็ว (vₓ, vᵧ, v)</span></label>
+      <label class="switch"><input id="showA" type="checkbox" checked><span>แสดงเวกเตอร์ความเร่ง/แรง (g, a, a<sub>c</sub>, F<sub>c</sub>)</span></label>
+      <label class="switch" id="grpCompare"><input id="compare" type="checkbox" checked><span>เปรียบเทียบมุมคู่ (90° − θ)</span></label>
+    </div>
+    <div class="transport">
+      <div class="row">
+        <button type="button" id="playBtn">เล่น</button>
+        <button type="button" id="resetBtn">เริ่มใหม่</button>
+      </div>
+      <div class="row" id="grpJump" style="margin-top:8px">
+        <button type="button" id="apexBtn">ไปจุดสูงสุด</button>
+        <button type="button" id="landBtn">ไปจุดตก</button>
+      </div>
+      <div class="speeds" role="group" aria-label="ความเร็วแอนิเมชัน">
+        <button type="button" data-speed="0.5">0.5×</button>
+        <button type="button" class="on" data-speed="1">1.0×</button>
+        <button type="button" data-speed="2">2.0×</button>
+      </div>
+      <p class="keyhint">สเปซบาร์ = เล่น/หยุด · R = เริ่มใหม่ · วิถีค้างไว้จนกว่าจะกดเริ่มใหม่</p>
+    </div>
+  </section>
+  <section class="panel center" aria-label="จอจำลอง">
+    <div class="canvas-wrap">
+      <canvas id="sim"></canvas>
+      <div class="banner" id="banner" hidden></div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="readout" id="readout"></div>
+    <div class="progress" aria-hidden="true"><div id="prog"></div></div>
+    <div class="eq" id="eq"></div>
+  </section>
+  <section class="panel" aria-label="กราฟและบทวิเคราะห์">
+    <div class="sec">
+      <h2>กราฟความสัมพันธ์</h2>
+      <div class="gcard"><canvas id="g1"></canvas></div>
+      <div class="gcard"><canvas id="g2"></canvas></div>
+    </div>
+    <div class="sec">
+      <h2>ค่าวิเคราะห์สำคัญ</h2>
+      <div id="analysis"></div>
+    </div>
+    <div class="miscon" id="miscon">
+      <div class="tag">ความเข้าใจคลาดเคลื่อนที่พบบ่อย</div>
+      <h3 id="misTitle"></h3>
+      <p id="misBody"></p>
+    </div>
+  </section>
+</main>
+<script>
+'use strict';
+const G = 9.81;
+const TRACE = ['#5eead4', '#fbbf24', '#fb7185', '#93c5fd', '#d8b4fe', '#86efac'];
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  mode: 1,
+  scenario: 'level',
+  u: 20,
+  thetaDeg: 45,
+  h0: 0,
+  r: 5,
+  m: 1,
+  k: 0,
+  mu: 0,
+  v: 20,
+  omega: 4,
+  showV: true,
+  showA: true,
+  compare: true,
+  speed: 1,
+  playing: false,
+  t: 0,
+  history: [],
+  dyn: null,
+  presetKey: ''
+};
+
+function f(n, d = 2) {
+  if (!Number.isFinite(n)) return '∞';
+  const text = n.toFixed(d);
+  return text === '-0.00' || text === '-0.000' || Number(text) === 0 ? (0).toFixed(d) : text;
+}
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+function rad(deg) { return deg * Math.PI / 180; }
+
+function currentP() {
+  return {
+    mode: state.mode,
+    u: state.u,
+    thetaDeg: state.thetaDeg,
+    h0: state.h0,
+    k: state.mode === 2 ? state.k : 0,
+    m: Math.max(0.1, state.m)
+  };
+}
+
+function projAt(p, t) {
+  const th = rad(p.thetaDeg);
+  const ux = p.u * Math.cos(th);
+  const uy = p.u * Math.sin(th);
+  const drag = p.mode !== 1 && p.k >= 1e-8;
+  if (!drag) {
+    return {
+      x: ux * t,
+      y: p.h0 + uy * t - 0.5 * G * t * t,
+      vx: ux,
+      vy: uy - G * t,
+      ux, uy, ax: 0, ay: -G
+    };
+  }
+  const b = p.k / p.m;
+  const e = Math.exp(-b * t);
+  const vx = ux * e;
+  const vy = (uy + G / b) * e - G / b;
+  return {
+    x: (ux / b) * (1 - e),
+    y: p.h0 + ((uy + G / b) / b) * (1 - e) - (G / b) * t,
+    vx, vy, ux, uy,
+    ax: -b * vx,
+    ay: -G - b * vy
+  };
+}
+
+function isLanded(p, t) {
+  if (t <= 1e-8) return false;
+  const s = projAt(p, t);
+  return s.y <= 0 && s.vy <= 0;
+}
+
+function flightTime(p) {
+  const uy = p.u * Math.sin(rad(p.thetaDeg));
+  if (p.h0 <= 1e-9 && uy <= 1e-9) return 0;
+  const closed = (uy + Math.sqrt(uy * uy + 2 * G * p.h0)) / G;
+  if (p.mode === 1 || p.k < 1e-8) return closed;
+  let hi = Math.max(0.05, closed);
+  let guard = 0;
+  while (!isLanded(p, hi) && guard < 50) {
+    hi *= 1.6;
+    guard += 1;
+    if (hi > 240) return hi;
+  }
+  let lo = 0;
+  for (let i = 0; i < 70; i++) {
+    const mid = (lo + hi) / 2;
+    if (isLanded(p, mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+function apex(p) {
+  const uy = p.u * Math.sin(rad(p.thetaDeg));
+  if (uy <= 1e-9) return { t: 0, H: p.h0, x: 0 };
+  if (p.mode === 1 || p.k < 1e-8) {
+    const t = uy / G;
+    return { t, H: p.h0 + uy * uy / (2 * G), x: p.u * Math.cos(rad(p.thetaDeg)) * t };
+  }
+  const b = p.k / p.m;
+  const t = Math.log((uy + G / b) / (G / b)) / b;
+  const s = projAt(p, t);
+  return { t, H: s.y, x: s.x };
+}
+
+function samplePath(p, tEnd, n) {
+  const pts = [];
+  const N = Math.max(1, n);
+  const T = Math.max(0, tEnd);
+  for (let i = 0; i <= N; i++) pts.push(projAt(p, T * i / N));
+  return pts;
+}
+
+function thetaOptDeg(u, h0) {
+  const s = 1 / Math.sqrt(2 + (2 * G * h0) / (u * u));
+  return Math.asin(clamp(s, 0, 1)) * 180 / Math.PI;
+}
+
+function levelInfo() {
+  const ac = state.v * state.v / state.r;
+  const Fc = state.m * ac;
+  const fmax = state.mu * state.m * G;
+  const vmax = Math.sqrt(Math.max(0, state.mu * G * state.r));
+  return { ac, Fc, fmax, vmax, safe: Fc <= fmax + 1e-6 };
+}
+
+function bankLimits(r, thetaDeg, mu) {
+  if (thetaDeg >= 89.9) return { vmin: 0, vmax: Infinity, vdesign: Infinity, tan: Infinity, degenerate: true };
+  const tan = Math.tan(rad(thetaDeg));
+  const denMax = 1 - mu * tan;
+  const vmax = denMax <= 1e-4 ? Infinity : Math.sqrt(Math.max(0, r * G * (tan + mu) / denMax));
+  const vmin = tan - mu <= 1e-8 ? 0 : Math.sqrt(Math.max(0, r * G * (tan - mu) / (1 + mu * tan)));
+  const vdesign = Math.sqrt(Math.max(0, r * G * tan));
+  return { vmin, vmax, vdesign, tan, degenerate: false };
+}
+
+function conicalInfo() {
+  const deg = state.thetaDeg;
+  if (deg <= 0) return { v: 0, L: Infinity, tension: state.m * G, period: Infinity, omega: 0, bad: 'zero' };
+  if (deg >= 90) return { v: Infinity, L: state.r, tension: Infinity, period: 0, omega: Infinity, bad: 'ninety' };
+  const th = rad(deg);
+  const v = Math.sqrt(state.r * G * Math.tan(th));
+  const L = state.r / Math.sin(th);
+  const tension = state.m * G / Math.cos(th);
+  const period = 2 * Math.PI * Math.sqrt((L * Math.cos(th)) / G);
+  return { v, L, tension, period, omega: v / state.r, bad: null };
+}
+
+function wallInfo() {
+  const N = state.m * state.v * state.v / state.r;
+  const weight = state.m * G;
+  const fmax = state.mu * N;
+  const vmin = state.mu <= 1e-8 ? Infinity : Math.sqrt(state.r * G / state.mu);
+  const aDown = G - state.mu * state.v * state.v / state.r;
+  return { N, weight, fmax, vmin, aDown, safe: fmax + 1e-6 >= weight };
+}
+
+function updateDerived() {
+  if (state.mode === 4 && state.scenario === 'conical') {
+    state.v = conicalInfo().v;
+  }
+  state.omega = Number.isFinite(state.v) && state.r > 0 ? state.v / state.r : 0;
+  const om = $('omega');
+  if (om && Number.isFinite(state.omega) && parseFloat(om.max) < state.omega) om.max = String(state.omega + 1);
+}
+
+function clampSliderV() {
+  if (state.mode === 4 && state.scenario === 'conical') return;
+  if (!Number.isFinite(state.v)) state.v = 20;
+  state.v = clamp(state.v, 1, 50);
+}
+
+function onPhysicsChange() {
+  updateDerived();
+  if (state.mode >= 3) {
+    state.t = 0;
+    state.dyn = null;
+  } else {
+    const T = flightTime(currentP());
+    if (state.t > T) state.t = T;
+  }
+}
+
+function commitHistory() {
+  if (state.mode > 2) return;
+  const p = currentP();
+  const T = flightTime(p);
+  if (T <= 0.05) return;
+  const sig = [p.mode, p.u, p.thetaDeg, p.h0, p.k, p.m].join('|');
+  if (state.history.some((h) => h.sig === sig)) return;
+  state.history.push({
+    sig,
+    pts: samplePath(p, T, 150),
+    color: TRACE[state.history.length % TRACE.length],
+    label: p.mode === 2 && p.k > 0 ? `θ=${p.thetaDeg}° k=${f(p.k)}` : `θ=${p.thetaDeg}°`
+  });
+  if (state.history.length > 6) state.history.shift();
+}
+
+function integrateLevel(dt) {
+  if (!state.dyn) state.dyn = { x: state.r, y: 0, vx: 0, vy: state.v, off: false, trail: [] };
+  const outer = state.r + 0.9;
+  const steps = Math.max(1, Math.ceil(dt / 0.004));
+  const h = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    const d = state.dyn;
+    const rho = Math.hypot(d.x, d.y) || 1e-4;
+    if (d.off || rho > outer) {
+      d.off = true;
+      d.x += d.vx * h;
+      d.y += d.vy * h;
+    } else {
+      const ux = d.x / rho;
+      const uy = d.y / rho;
+      const sp = Math.hypot(d.vx, d.vy);
+      const a = Math.min(sp * sp / rho, state.mu * G);
+      d.vx += -a * ux * h;
+      d.vy += -a * uy * h;
+      d.x += d.vx * h;
+      d.y += d.vy * h;
+    }
+  }
+  const d = state.dyn;
+  d.trail.push({ x: d.x, y: d.y });
+  if (d.trail.length > 500) d.trail.shift();
+  if (Math.hypot(d.x, d.y) > state.r + 36) state.playing = false;
+}
+
+function step(dt) {
+  if (state.mode <= 2) {
+    const T = flightTime(currentP());
+    if (T <= 0) { state.playing = false; return; }
+    state.t += dt;
+    if (state.t >= T) {
+      state.t = T;
+      state.playing = false;
+      commitHistory();
+    }
+    return;
+  }
+  state.t += dt;
+  if (state.mode === 4 && state.scenario === 'level' && !levelInfo().safe) integrateLevel(dt);
+  if (state.mode === 4 && state.scenario === 'wall') {
+    const info = wallInfo();
+    if (info.aDown > 0) {
+      const fallT = Math.sqrt(16 / info.aDown);
+      if (state.t >= fallT) {
+        state.t = fallT;
+        state.playing = false;
+      }
+    }
+  }
+}
+
+function togglePlay() {
+  const willPlay = !state.playing;
+  if (willPlay && state.mode <= 2) {
+    const T = flightTime(currentP());
+    if (T <= 0) return;
+    if (state.t >= T - 1e-4) state.t = 0;
+  }
+  if (willPlay && state.dyn && state.dyn.off) {
+    state.t = 0;
+    state.dyn = null;
+  }
+  state.playing = willPlay;
+}
+
+function resetSim() {
+  state.t = 0;
+  state.playing = false;
+  state.history = [];
+  state.dyn = null;
+}
+
+function goApex() {
+  const p = currentP();
+  const a = apex(p);
+  if (flightTime(p) <= 0) return;
+  state.t = a.t;
+  state.playing = false;
+}
+
+function goLand() {
+  const p = currentP();
+  const T = flightTime(p);
+  if (T <= 0) return;
+  state.t = T;
+  state.playing = false;
+  commitHistory();
+}
+
+function enterMode(mode) {
+  state.mode = mode;
+  state.t = 0;
+  state.playing = false;
+  state.history = [];
+  state.dyn = null;
+  clampSliderV();
+  updateDerived();
+  syncSliders();
+}
+
+function enterScenario(sc) {
+  state.scenario = sc;
+  state.t = 0;
+  state.playing = false;
+  state.dyn = null;
+  clampSliderV();
+  updateDerived();
+  syncSliders();
+}
+
+function applyPreset(id) {
+  const set = {
+    t30: () => { state.thetaDeg = 30; },
+    t45: () => { state.thetaDeg = 45; },
+    t60: () => { state.thetaDeg = 60; },
+    cliff: () => { state.h0 = 15; state.thetaDeg = 0; state.u = 18; },
+    opt: () => { state.thetaDeg = clamp(Math.round(thetaOptDeg(state.u, state.h0) / 5) * 5, 0, 90); },
+    k0: () => { state.k = 0; },
+    k1: () => { state.k = 0.15; },
+    k2: () => { state.k = 0.4; },
+    slow: () => { state.v = 8; },
+    mid: () => { state.v = 15; },
+    fast: () => { state.v = 30; },
+    safe: () => { state.mu = 0.5; state.r = 18; state.v = 6; },
+    edge: () => { state.mu = 0.5; state.r = 12; state.v = 7; },
+    skid: () => { state.mu = 0.2; state.r = 8; state.v = 18; },
+    design: () => {
+      state.mu = 0; state.thetaDeg = 20; state.r = 30;
+      state.v = Math.sqrt(30 * G * Math.tan(rad(20)));
+    },
+    bankFast: () => { state.mu = 0.3; state.thetaDeg = 20; state.r = 30; state.v = 25; },
+    bankSlow: () => { state.mu = 0.15; state.thetaDeg = 25; state.r = 20; state.v = 4; },
+    c20: () => { state.thetaDeg = 20; state.r = 4; },
+    c40: () => { state.thetaDeg = 40; state.r = 4; },
+    c60: () => { state.thetaDeg = 60; state.r = 3; },
+    ride: () => { state.mu = 0.5; state.r = 6; state.v = 16; },
+    fall: () => { state.mu = 0.15; state.r = 8; state.v = 8; }
+  };
+  if (!set[id]) return;
+  set[id]();
+  state.t = 0;
+  state.playing = false;
+  state.dyn = null;
+  clampSliderV();
+  updateDerived();
+  syncSliders();
+}
+
+function presetItems() {
+  if (state.mode === 1) return [
+    ['t30', 'มุม 30°'], ['t45', 'มุม 45°'], ['t60', 'มุม 60°'],
+    ['opt', 'มุมไกลสุด'], ['cliff', 'ยิงจากที่สูง']
+  ];
+  if (state.mode === 2) return [['k0', 'k = 0'], ['k1', 'k = 0.15'], ['k2', 'k = 0.40']];
+  if (state.mode === 3) return [['slow', 'ช้า 8 m/s'], ['mid', 'ปานกลาง 15'], ['fast', 'เร็ว 30']];
+  if (state.scenario === 'level') return [['safe', 'อยู่ในวงได้'], ['edge', 'ใกล้ขีดจำกัด'], ['skid', 'ไถลออก']];
+  if (state.scenario === 'bank') return [['design', 'เร็วพอดี μ=0'], ['bankFast', 'เร็วเกิน'], ['bankSlow', 'ช้าเกิน']];
+  if (state.scenario === 'conical') return [['c20', 'มุม 20°'], ['c40', 'มุม 40°'], ['c60', 'มุม 60°']];
+  return [['ride', 'ไต่ถังได้'], ['fall', 'ไถลลง']];
+}
+
+function syncSliders() {
+  $('u').value = state.u;
+  $('theta').value = state.thetaDeg;
+  $('h0').value = state.h0;
+  $('r').value = state.r;
+  $('m').value = state.m;
+  $('k').value = state.k;
+  $('mu').value = state.mu;
+  if (Number.isFinite(state.v)) $('v').value = clamp(state.v, 1, 50);
+  const om = $('omega');
+  const oMax = Math.max(20, Number.isFinite(state.omega) ? state.omega + 1 : 20);
+  om.max = String(oMax);
+  if (Number.isFinite(state.omega)) om.value = state.omega;
+}
+
+function show(id, on) {
+  const el = $(id);
+  if (el) el.hidden = !on;
+}
+
+function updateVisibility() {
+  const m = state.mode;
+  const s = state.scenario;
+  show('grpU', m <= 2);
+  show('grpTheta', m <= 2 || (m === 4 && (s === 'bank' || s === 'conical')));
+  show('grpH', m <= 2);
+  show('grpR', m >= 3);
+  show('grpM', m >= 2);
+  show('grpK', m === 2);
+  show('grpMu', m === 4 && s !== 'conical');
+  show('grpV', m === 3 || (m === 4 && s !== 'conical'));
+  show('grpOmega', m === 3);
+  show('grpVcalc', m === 4 && s === 'conical');
+  show('grpScenario', m === 4);
+  show('grpCompare', m === 1);
+  show('grpJump', m <= 2);
+  const names = { 1: 'มุมยิง θ', 2: 'มุมยิง θ', bank: 'มุมเอียงถนน θ', conical: 'มุมจากแนวดิ่ง θ' };
+  $('thetaName').textContent = m <= 2 ? names[m] : (names[s] || 'มุม θ');
+  $('rName').textContent = s === 'conical' && m === 4 ? 'รัศมีวงของลูกตุ้ม r' : 'รัศมี r';
+  $('uVal').textContent = f(state.u, 1);
+  $('thetaVal').textContent = Number.isInteger(state.thetaDeg) ? String(state.thetaDeg) : f(state.thetaDeg, 1);
+  $('h0Val').textContent = f(state.h0, 1);
+  $('rVal').textContent = f(state.r, 1);
+  $('mVal').textContent = f(state.m, 1);
+  $('kVal').textContent = f(state.k, 2);
+  $('muVal').textContent = f(state.mu, 2);
+  $('vVal').textContent = Number.isFinite(state.v) ? f(state.v, 2) : '∞';
+  $('omegaVal').textContent = Number.isFinite(state.omega) ? f(state.omega, 2) : '∞';
+  if (m === 4 && s === 'conical') {
+    const c = conicalInfo();
+    $('vCalc').textContent = (Number.isFinite(c.v) ? f(c.v, 2) : '∞') + ' m/s';
+  }
+  const hints = {
+    1: 'แนวราบ vx คงที่ แนวดิ่งมีความเร่ง −g ตลอด วิถีจะถูกเก็บเมื่อตกถึงพื้น จนกดเริ่มใหม่',
+    2: 'เส้นประทองคือพาราโบลาไม่มีแรงต้าน เส้นทึบคือวิถีที่มีแรงต้าน f = −kv',
+    3: 'กำหนดให้เคลื่อนที่วงกลมสม่ำเสมอ แล้วคำนวณแรงสู่ศูนย์กลางที่ต้องมี แม้ v คงที่ก็ยังมี ac',
+    level: 'บนโค้งราบ แรงเสียดทานสถิตชี้เข้าศูนย์กลาง และ v ต้องไม่เกิน √(μgr)',
+    bank: 'องค์ประกอบของแรงตั้งฉากช่วยเข้าสู่ศูนย์กลาง ถ้า μ = 0 ต้องมี tan θ = v²/(rg)',
+    conical: 'องค์ประกอบแนวนอนของแรงตึงคือแรงสู่ศูนย์กลาง ความสัมพันธ์คือ tan θ = v²/(rg)',
+    wall: 'ผนังดันรถเข้าสู่ศูนย์กลาง แรงเสียดทานชี้ขึ้นต้านน้ำหนัก เงื่อนไขคือ v ≥ √(rg/μ)'
+  };
+  $('modeHint').textContent = m === 4 ? hints[s] : hints[m];
+  document.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('on', Number(b.dataset.mode) === m));
+  document.querySelectorAll('[data-sc]').forEach((b) => b.classList.toggle('on', b.dataset.sc === s));
+  const T = m <= 2 ? flightTime(currentP()) : 1;
+  $('apexBtn').disabled = T <= 0;
+  $('landBtn').disabled = T <= 0;
+  const key = m + '-' + (m === 4 ? s : '');
+  if (key !== state.presetKey) {
+    state.presetKey = key;
+    $('presets').innerHTML = presetItems().map(([id, label]) => `<button type="button" data-preset="${id}">${label}</button>`).join('');
+  }
+}
+
+function setHTML(el, html) {
+  if (el.__h !== html) { el.innerHTML = html; el.__h = html; }
+}
+
+function chip(label, value, unit, cls) {
+  return `<div class="stat${cls ? ' ' + cls : ''}"><span>${label}</span><b>${value}</b><em>${unit}</em></div>`;
+}
+
+function renderReadout() {
+  let html = '';
+  if (state.mode <= 2) {
+    const p = currentP();
+    const s = projAt(p, state.t);
+    const sp = Math.hypot(s.vx, s.vy);
+    const near = Math.abs(state.t - apex(p).t) < 0.15 && apex(p).t > 0.05;
+    html = [
+      chip('ระยะทางแนวราบ x', f(Math.max(0, s.x)), 'm'),
+      chip('ความสูง y', f(Math.max(0, s.y)), 'm'),
+      chip('ความเร็ว vx', f(s.vx), 'm/s', 'hot'),
+      chip('ความเร็ว vy', f(s.vy), 'm/s', near ? 'alert' : ''),
+      chip('เวลา t', f(state.t), 's'),
+      chip('อัตราเร็ว v', f(sp), 'm/s'),
+      chip('ความเร่ง ax', f(s.ax), 'm/s²'),
+      chip('ความเร่ง ay', f(s.ay), 'm/s²', 'alert'),
+      chip('มุมที่ยิง', f(state.thetaDeg, 0), '°'),
+      chip('ความสูงต้น h₀', f(state.h0, 1), 'm')
+    ].join('');
+  } else if (state.mode === 3) {
+    const ac = state.v * state.v / state.r;
+    const Fc = state.m * ac;
+    const T = 2 * Math.PI / state.omega;
+    const freq = state.omega / (2 * Math.PI);
+    const phi = state.omega * state.t;
+    html = [
+      chip('อัตราเร็วเชิงมุม ω', f(state.omega), 'rad/s'),
+      chip('คาบ T', f(T), 's'),
+      chip('ความถี่ f', f(freq, 3), 'Hz'),
+      chip('แรงสู่ศูนย์กลาง Fc', f(Fc), 'N'),
+      chip('ความเร่ง ac', f(ac), 'm/s²', 'alert'),
+      chip('อัตราเร็ว v', f(state.v, 2), 'm/s'),
+      chip('รัศมี r', f(state.r, 1), 'm'),
+      chip('มุมที่กวาด φ', f((phi % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI)), 'rad'),
+      chip('φ เป็นองศา', f((phi * 180 / Math.PI) % 360), '°'),
+      chip('จำนวนรอบ', f(phi / (2 * Math.PI), 2), 'รอบ')
+    ].join('');
+  } else if (state.scenario === 'level') {
+    const info = levelInfo();
+    const T = state.v > 0 ? 2 * Math.PI * state.r / state.v : Infinity;
+    html = [
+      chip('ω', f(state.omega), 'rad/s'),
+      chip('คาบ T', f(T), 's'),
+      chip('ความถี่ f', f(1 / T, 3), 'Hz'),
+      chip('Fc ที่ต้องใช้', f(info.Fc), 'N', info.safe ? '' : 'alert'),
+      chip('ac', f(info.ac), 'm/s²', 'alert'),
+      chip('f สูงสุด', f(info.fmax), 'N'),
+      chip('v สูงสุด', f(info.vmax), 'm/s'),
+      chip('อัตราเร็วขณะนี้', f(state.v, 1), 'm/s'),
+      chip('μ', f(state.mu, 2), ''),
+      chip('สถานะ', info.safe ? 'อยู่ในวง' : 'ไถล', '')
+    ].join('');
+  } else if (state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    const ac = state.v * state.v / state.r;
+    const safe = !b.degenerate && state.v >= b.vmin - 0.05 && (b.vmax === Infinity || state.v <= b.vmax + 0.05);
+    html = [
+      chip('v ต่ำสุด', f(b.vmin), 'm/s'),
+      chip('v พอดี', f(b.vdesign), 'm/s', 'hot'),
+      chip('v สูงสุด', f(b.vmax), 'm/s'),
+      chip('ac', f(ac), 'm/s²', 'alert'),
+      chip('Fc', f(state.m * ac), 'N'),
+      chip('ω', f(state.omega), 'rad/s'),
+      chip('tan θ', f(b.tan), ''),
+      chip('v²/(rg)', f(state.v * state.v / (state.r * G)), ''),
+      chip('อัตราเร็วขณะนี้', f(state.v, 2), 'm/s'),
+      chip('สถานะ', b.degenerate ? 'มุมชันเกิน' : safe ? 'ปลอดภัย' : 'ไถล', '')
+    ].join('');
+  } else if (state.scenario === 'conical') {
+    const c = conicalInfo();
+    const ac = Number.isFinite(c.v) ? c.v * c.v / state.r : Infinity;
+    html = [
+      chip('ω', f(c.omega), 'rad/s'),
+      chip('คาบ T', f(c.period), 's'),
+      chip('ความถี่ f', Number.isFinite(c.period) ? f(1 / c.period, 3) : '∞', 'Hz'),
+      chip('แรงสู่ศูนย์กลาง', Number.isFinite(ac) ? f(state.m * ac) : '∞', 'N'),
+      chip('ac', f(ac), 'm/s²', 'alert'),
+      chip('อัตราเร็ว v', f(c.v), 'm/s'),
+      chip('ความยาวเชือก L', f(c.L), 'm'),
+      chip('แรงตึง', f(c.tension), 'N'),
+      chip('มุม θ', f(state.thetaDeg, 0), '°'),
+      chip('รัศมี r', f(state.r, 1), 'm')
+    ].join('');
+  } else {
+    const info = wallInfo();
+    const T = 2 * Math.PI * state.r / state.v;
+    html = [
+      chip('ω', f(state.omega), 'rad/s'),
+      chip('คาบ T', f(T), 's'),
+      chip('ความถี่ f', f(1 / T, 3), 'Hz'),
+      chip('แรงตั้งฉาก N', f(info.N), 'N'),
+      chip('ac', f(state.v * state.v / state.r), 'm/s²', 'alert'),
+      chip('f สูงสุด', f(info.fmax), 'N', info.safe ? '' : 'alert'),
+      chip('น้ำหนัก', f(info.weight), 'N'),
+      chip('v ต่ำสุด', f(info.vmin), 'm/s'),
+      chip('อัตราเร็วขณะนี้', f(state.v, 1), 'm/s'),
+      chip('สถานะ', info.safe ? 'ไต่ได้' : 'ไถลลง', '')
+    ].join('');
+  }
+  setHTML($('readout'), html);
+}
+
+function line(s) { return `<div>${s}</div>`; }
+
+function renderEq() {
+  let html = '';
+  if (state.mode <= 2) {
+    const p = currentP();
+    const s = projAt(p, state.t);
+    const T = flightTime(p);
+    const R = projAt(p, T).x;
+    const dragOn = state.mode === 2 && p.k >= 1e-8;
+    if (!dragOn) {
+      html = [
+        line(`uₓ = u cos θ = ${f(s.ux)} m/s`),
+        line(`uᵧ = u sin θ = ${f(s.uy)} m/s`),
+        line(`x = uₓ t = ${f(Math.max(0, s.x))} m`),
+        line(`vᵧ = uᵧ − g t = ${f(s.vy)} m/s`),
+        line(`y = h₀ + uᵧ t − ½ g t² = ${f(Math.max(0, s.y))} m`),
+        line(`aₓ = 0 , aᵧ = −g = −${f(G)} m/s²`)
+      ];
+      if (state.h0 === 0) html.push(line(`R = u² sin 2θ / g = ${f(p.u * p.u * Math.sin(2 * rad(p.thetaDeg)) / G)} m`));
+      else html.push(line(`h₀ ≠ 0 จึงใช้ T = [uᵧ + √(uᵧ² + 2 g h₀)] / g = ${f(T)} s แล้ว R = uₓ T = ${f(R)} m`));
+      if (state.mode === 2) html.push(line('k = 0 วิถีตรงกับพาราโบลาไม่มีแรงต้าน'));
+    } else {
+      const b = p.k / p.m;
+      html = [
+        line(`แรงต้าน f = −k v , b = k/m = ${f(b, 3)} s⁻¹`),
+        line(`vₓ = uₓ e^(−b t) = ${f(s.vx)} m/s`),
+        line(`vᵧ = (uᵧ + g/b) e^(−b t) − g/b = ${f(s.vy)} m/s`),
+        line(`x = ${f(Math.max(0, s.x))} m , y = ${f(Math.max(0, s.y))} m`),
+        line(`aₓ = −b vₓ = ${f(s.ax)} m/s²`),
+        line(`aᵧ = −g − b vᵧ = ${f(s.ay)} m/s²`),
+        line(`ความเร็วปลายแนวดิ่ง m g / k = ${f(state.m * G / p.k)} m/s`)
+      ];
+    }
+    html = html.join('');
+  } else if (state.mode === 3) {
+    const ac = state.v * state.v / state.r;
+    const T = 2 * Math.PI * state.r / state.v;
+    html = [
+      line(`v = ωr = 2πr/T = 2πfr`),
+      line(`ω = v/r = ${f(state.v, 2)} / ${f(state.r, 1)} = ${f(state.omega)} rad/s`),
+      line(`T = 2π/ω = ${f(T)} s , f = 1/T = ω/(2π) = ${f(1 / T, 3)} Hz`),
+      line(`a_c = v²/r = ω²r = ${f(ac)} m/s² ชี้เข้าศูนย์กลาง`),
+      line(`F_c = ma_c = mv²/r = mω²r = ${f(state.m * ac)} N`)
+    ].join('');
+  } else if (state.scenario === 'level') {
+    const info = levelInfo();
+    html = [
+      line(`F_c = mv²/r = ${f(state.m)} × ${f(state.v, 1)}² / ${f(state.r, 1)} = ${f(info.Fc)} N`),
+      line(`f_max = μmg = ${f(state.mu, 2)} × ${f(state.m, 1)} × ${f(G)} = ${f(info.fmax)} N`),
+      line(`v_max = √(μgr) = ${f(info.vmax)} m/s`),
+      line('มวลปรากฏทั้ง Fc และ f_max จึงตัดกันในเงื่อนไขของ v_max')
+    ].join('');
+  } else if (state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    html = [
+      line(`v_ออกแบบ = √(rg tan θ) = ${f(b.vdesign)} m/s  (กรณี μ = 0)`),
+      line(`tan θ = ${f(b.tan)} , v²/(rg) = ${f(state.v * state.v / (state.r * G))}`),
+      line(`v_min = √[rg(tanθ − μ)/(1 + μ tanθ)] = ${f(b.vmin)} m/s`),
+      line(`v_max = √[rg(tanθ + μ)/(1 − μ tanθ)] = ${f(b.vmax)} m/s`)
+    ].join('');
+  } else if (state.scenario === 'conical') {
+    const c = conicalInfo();
+    html = [
+      line('tan θ = v²/(rg)'),
+      line(`v = √(rg tan θ) = ${f(c.v)} m/s`),
+      line(`L = r/sin θ = ${f(c.L)} m`),
+      line(`คาบ = 2π√(L cos θ / g) = ${f(c.period)} s`),
+      line(`แรงตึง = mg/cos θ = ${f(c.tension)} N`)
+    ].join('');
+  } else {
+    const info = wallInfo();
+    html = [
+      line(`N = mv²/r = ${f(info.N)} N ชี้เข้าศูนย์กลางในแนวราบ`),
+      line(`f_max = μN = ${f(info.fmax)} N ชี้ขึ้น`),
+      line(`น้ำหนัก mg = ${f(info.weight)} N`),
+      line(`v_min = √(rg/μ) = ${f(info.vmin)} m/s`)
+    ].join('');
+  }
+  setHTML($('eq'), html);
+}
+
+function big(label, value, unit) {
+  return `<div><span>${label}</span><b>${value}</b> <span>${unit}</span></div>`;
+}
+function notes(items) {
+  return `<ul class="notes">${items.map((t) => `<li>${t}</li>`).join('')}</ul>`;
+}
+
+function renderAnalysis() {
+  let html = '';
+  if (state.mode <= 2) {
+    const p = currentP();
+    const T = flightTime(p);
+    const land = projAt(p, T);
+    const ap = apex(p);
+    const opt = thetaOptDeg(p.u, p.h0);
+    const compDeg = 90 - p.thetaDeg;
+    const pComp = { ...p, thetaDeg: compDeg, mode: 1, k: 0 };
+    const Rcomp = p.mode === 1 ? projAt(pComp, flightTime(pComp)).x : null;
+    const ideal = { ...p, mode: 1, k: 0 };
+    const Ri = projAt(ideal, flightTime(ideal)).x;
+    const Hi = apex(ideal).H;
+    const sp = Math.hypot(land.vx, land.vy);
+    const same = p.h0 === 0 && p.mode === 1;
+    const list = [
+      p.mode === 1
+        ? `vₓ คงที่ = ${f(land.ux)} m/s · uᵧ = ${f(p.u * Math.sin(rad(p.thetaDeg)))} m/s`
+        : `ตอนตก vₓ = ${f(land.vx)} m/s (ตอนยิง uₓ = ${f(land.ux)} m/s) · uᵧ = ${f(p.u * Math.sin(rad(p.thetaDeg)))} m/s`,
+      `เวลาถึงจุดสูงสุด ${f(ap.t)} s ที่ x = ${f(ap.x)} m`,
+      `มุมไกลสุดประมาณ ${f(opt, 1)}°${p.h0 === 0 ? ' (เป็น 45° เมื่อ h₀ = 0)' : ' ซึ่งน้อยกว่า 45° เพราะ h₀ &gt; 0'}`,
+      `มุมคู่ ${compDeg}° ให้ระยะ ${p.mode === 1 ? f(Rcomp) + ' m' : '—'} ${same ? 'เท่ากับมุมปัจจุบัน เพราะ h₀ = 0' : 'จะเท่ากันก็ต่อเมื่อ h₀ = 0 และไม่มีแรงต้าน'}`,
+      `อัตราเร็วตอนกระทบ ${f(sp)} m/s มุม ${f(Math.atan2(land.vy, land.vx) * 180 / Math.PI, 1)}°${same ? ' · บนพื้นราบไม่มีแรงต้าน อัตราเร็วตอนตกเท่ากับ u' : ''}`
+    ];
+    if (state.mode === 2) {
+      const drop = Ri > 0 ? (Ri - land.x) / Ri * 100 : 0;
+      list.unshift(`ไม่มีแรงต้าน: R = ${f(Ri)} m , H = ${f(Hi)} m · มีแรงต้านระยะสั้นลง ${f(Math.max(0, drop), 1)}%`);
+    }
+    html = `<div class="big">${big('H<sub>max</sub>', f(ap.H), 'm')}${big('R', f(Math.max(0, land.x)), 'm')}${big('T<sub>total</sub>', f(T), 's')}</div>${notes(list)}`;
+  } else if (state.mode === 3) {
+    const ac = state.v * state.v / state.r;
+    const Fc = state.m * ac;
+    const T = 2 * Math.PI * state.r / state.v;
+    html = `<div class="big">${big('ω', f(state.omega), 'rad/s')}${big('T', f(T), 's')}${big('f', f(1 / T, 3), 'Hz')}${big('F<sub>c</sub>', f(Fc), 'N')}${big('a<sub>c</sub>', f(ac), 'm/s²')}</div>${notes([
+      `ระยะทางหนึ่งรอบ = 2πr = ${f(2 * Math.PI * state.r)} m`,
+      'ac กับ Fc ชี้เข้าศูนย์กลางเสมอ ทิศไม่ชี้ออก',
+      'ในกรอบเฉื่อยไม่มีแรงหนีศูนย์กลางมากระทำ วัตถุพยายามเคลื่อนที่ตรงตามเส้นสัมผัส'
+    ])}`;
+  } else if (state.scenario === 'level') {
+    const info = levelInfo();
+    html = `<div class="big">${big('v<sub>max</sub>', f(info.vmax), 'm/s')}${big('F<sub>c</sub>', f(info.Fc), 'N')}${big('f<sub>max</sub>', f(info.fmax), 'N')}${big('a<sub>c</sub>', f(info.ac), 'm/s²')}</div>${notes([
+      info.safe ? 'แรงเสียดทานพอให้เคลื่อนที่วงกลมได้' : 'แรงเสียดทานไม่พอ รถออกนอกวงเพราะความเฉื่อย ไม่ใช่เพราะมีแรงหนีศูนย์ผลัก',
+      'v_max ไม่ขึ้นกับมวล เพราะมวลอยู่ในทั้ง mv²/r และ μmg'
+    ])}`;
+  } else if (state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    const safe = !b.degenerate && state.v >= b.vmin - 0.05 && (b.vmax === Infinity || state.v <= b.vmax + 0.05);
+    let msg = 'อัตราเร็วอยู่ในช่วงที่ถนนเอียงและแรงเสียดทานรับไหว';
+    if (b.degenerate) msg = 'มุมใกล้วัดดิ่ง ไม่ใช่โค้งเอียงที่ใช้สูตรทั่วไป ดูสถานการณ์รถไต่ถัง';
+    else if (state.v > b.vmax) msg = 'เร็วเกิน รถมีแนวโน้มไถลขึ้นด้านนอก แรงเสียดทานชี้ลงตามลาด';
+    else if (state.v < b.vmin) msg = 'ช้าเกิน รถมีแนวโน้มไถลลงด้านใน แรงเสียดทานชี้ขึ้นตามลาด';
+    html = `<div class="big">${big('v<sub>min</sub>', f(b.vmin), 'm/s')}${big('v พอดี', f(b.vdesign), 'm/s')}${big('v<sub>max</sub>', f(b.vmax), 'm/s')}</div>${notes([msg, safe ? 'สถานะ: ปลอดภัย' : 'สถานะ: อยู่นอกช่วงปลอดภัย', 'เมื่อ μ = 0 จะปลอดภัยที่อัตราเร็วเดียวคือ v = √(rg tan θ)'])}`;
+  } else if (state.scenario === 'conical') {
+    const c = conicalInfo();
+    html = `<div class="big">${big('v', f(c.v), 'm/s')}${big('คาบ', f(c.period), 's')}${big('แรงตึง', f(c.tension), 'N')}${big('L', f(c.L), 'm')}</div>${notes([
+      c.bad === 'zero' ? 'θ = 0° ลูกตุ้มห้อยนิ่ง ไม่เกิดวงกลม' : c.bad === 'ninety' ? 'θ = 90° แรงตึงไม่นิยามในแบบจำลองนี้' : 'T sin θ = mv²/r ชี้เข้าศูนย์กลาง และ T cos θ = mg',
+      'มุมคงที่ผูกกับอัตราเร็ว มุมยิ่งกว้าง ลูกตุ้มยิ่งเร็วและแรงตึงยิ่งมาก'
+    ])}`;
+  } else {
+    const info = wallInfo();
+    html = `<div class="big">${big('v<sub>min</sub>', f(info.vmin), 'm/s')}${big('N', f(info.N), 'N')}${big('μN', f(info.fmax), 'N')}${big('mg', f(info.weight), 'N')}</div>${notes([
+      info.safe ? 'แรงเสียดทานขึ้นพอต้านน้ำหนัก รถจึงไต่ถังอยู่ได้' : 'μN &lt; mg รถไถลลงแม้ยังโค้งในแนวราบ',
+      'ภาพกำหนดความสูงผนัง 8 m เพื่อให้เห็นการไถล สูตร v_min ไม่ขึ้นกับความสูงนี้',
+      'N คือแรงสู่ศูนย์กลาง ชี้เข้าหาแกนถัง ไม่ใช่แรงหนีศูนย์'
+    ])}`;
+  }
+  setHTML($('analysis'), html);
+}
+
+function renderMiscon() {
+  let tone = 'warn';
+  let title = '';
+  let body = '';
+  if (state.mode <= 2) {
+    const p = currentP();
+    const s = projAt(p, state.t);
+    const ap = apex(p);
+    const near = ap.t > 0.05 && Math.abs(state.t - ap.t) < 0.18;
+    if (flightTime(p) <= 0) {
+      title = 'ยิงราบจากพื้น วัตถุไม่ลอย';
+      body = 'เมื่อ θ = 0° และ h₀ = 0 วัตถุอยู่บนพื้นตั้งแต่แรก จึงไม่มีวิถีโค้ง ลองเพิ่มมุมหรือความสูงเริ่มต้น';
+    } else if (near) {
+      tone = 'good';
+      title = 'จุดสูงสุดไม่ได้หยุดนิ่ง และความเร่งไม่เป็นศูนย์';
+      body = `ตอนนี้ vy = ${f(s.vy)} m/s ซึ่งใกล้ศูนย์ แต่ vx = ${f(s.vx)} m/s ยังเท่ากับ uₓ วัตถุจึงยังเคลื่อนที่แนวราบ อัตราเร็วรวมเป็น ${f(Math.hypot(s.vx, s.vy))} m/s และ ay = ${f(s.ay)} m/s² ชี้ลงตลอด ไม่ได้หายไปที่จุดสูงสุด`;
+    } else if (state.mode === 2 && state.k > 0) {
+      title = 'มีแรงต้านแล้ววิถีไม่สมมาตร';
+      body = 'แรงต้าน f = −kv ต้านทิศความเร็ว ทำให้ vx ลดลงเรื่อย ๆ ระยะตกจึงสั้นกว่าพาราโบลาเส้นประ และมุมที่รวมกันได้ 90° ไม่ให้ระยะเท่ากันอีกต่อไป';
+    } else if (state.h0 > 0) {
+      title = 'มุม 45° ไกลสุดเฉพาะพื้นระดับเดียวกัน';
+      body = `ตอน h₀ = ${f(state.h0, 0)} m มุมที่ให้ระยะทางแนวราบมากสุดอยู่ราว ${f(thetaOptDeg(state.u, state.h0), 1)}° ซึ่งน้อยกว่า 45° สูตร R = u² sin 2θ / g ใช้เมื่อจุดยิงกับจุดตกสูงเท่ากันเท่านั้น`;
+    } else {
+      title = 'ทั้งทางโค้ง ax = 0 แต่ ay = −g ตลอด';
+      body = 'หลายคนคิดว่าหลังปล่อยวัตถุแล้วไม่เหลือแรง หรือคิดว่าที่จุดสูงสุดความเร่งเป็นศูนย์ ความจริงแรงโน้มถ่วงกระทำลงตลอดทาง vx คงที่ และ vy เปลี่ยนจากบวกเป็นลบด้วยความเร่ง −g กดปุ่มไปจุดสูงสุดเพื่อตรวจเลขบนจอ';
+    }
+  } else if (state.mode === 3) {
+    tone = 'warn';
+    title = 'อัตราเร็วคงที่ ไม่ได้แปลว่าไม่มีความเร่ง';
+    const ac = state.v * state.v / state.r;
+    body = `ขนาดของ v คงที่ ${f(state.v, 1)} m/s แต่ทิศเปลี่ยนตลอด จึงมี ac = v²/r = ${f(ac)} m/s² ชี้เข้าศูนย์กลางเสมอ เส้นประคือทางที่วัตถุจะพุ่งไปถ้าไม่มีแรงสู่ศูนย์กลาง ในกรอบเฉื่อยไม่มีแรงหนีศูนย์กลางจริง แรงนั้นเป็นแรงเทียมในกรอบที่หมุนตามวัตถุ`;
+  } else if (state.scenario === 'level') {
+    const info = levelInfo();
+    if (!info.safe) {
+      tone = 'bad';
+      title = 'รถออกนอกวงเพราะความเฉื่อย ไม่ใช่แรงหนีศูนย์';
+      body = `ตอนนี้ v = ${f(state.v, 1)} m/s แต่ v_max = √(μgr) = ${f(info.vmax)} m/s แรงเสียดทานสูงสุด ${f(info.fmax)} N น้อยกว่า Fc ที่ต้องใช้ ${f(info.Fc)} N เมื่อแรงเข้าสู่ศูนย์กลางไม่พอ รถเคลื่อนที่ตรงตามแนวสัมผัสมากขึ้น`;
+    } else {
+      tone = 'good';
+      title = 'แรงเสียดทานบนโค้งราบชี้เข้าศูนย์กลาง';
+      body = `f = mv²/r = ${f(info.Fc)} N ซึ่งไม่เกิน μmg = ${f(info.fmax)} N แรงนี้คือแรงสู่ศูนย์กลาง ไม่มีแรงหนีศูนย์กลางผลักรถออกในกรอบของคนยืนดูบนพื้น`;
+    }
+  } else if (state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    const safe = !b.degenerate && state.v >= b.vmin - 0.05 && (b.vmax === Infinity || state.v <= b.vmax + 0.05);
+    if (b.degenerate) {
+      tone = 'bad';
+      title = 'มุมตั้งชันไม่เข้าสูตรโค้งเอียงทั่วไป';
+      body = 'เมื่อ θ เข้าใกล้ 90° ถนนกลายเป็นผนังตั้ง ให้ไปดูสถานการณ์รถไต่ถัง ซึ่งใช้แรงตั้งฉากจากผนังเป็นแรงสู่ศูนย์กลาง';
+    } else if (!safe && state.v > b.vdesign) {
+      tone = 'bad';
+      title = 'เร็วเกิน รถอยากพ้นโค้งเพราะความเฉื่อย';
+      body = `v มากกว่าช่วงปลอดภัย (v_max = ${f(b.vmax)} m/s) แรงเสียดทานจะชี้ลงตามลาดเพื่อต้านการไถลขึ้น ถ้ายังไม่พอ รถไถลออกด้านนอก ไม่ใช่เพราะมีแรงหนีศูนย์กลางมากระทำ`;
+    } else if (!safe) {
+      tone = 'bad';
+      title = 'ช้าเกิน รถไถลลงด้านในของโค้ง';
+      body = `v ต่ำกว่า v_min = ${f(b.vmin)} m/s องค์ประกอบของน้ำหนักตามลาดเอาชนะแรงเสียดทาน รถจึงไถลเข้าด้านใน`;
+    } else {
+      tone = 'good';
+      title = 'ถนนเอียงช่วยส่งองค์ประกอบของ N เข้าศูนย์กลาง';
+      body = `เงื่อนไขไม่มีแรงเสียดทานคือ tan θ = v²/(rg) ตอนนี้ v พอดีอยู่ที่ ${f(b.vdesign)} m/s และช่วงปลอดภัยคือ ${f(b.vmin)} ถึง ${f(b.vmax)} m/s`;
+    }
+  } else if (state.scenario === 'conical') {
+    const c = conicalInfo();
+    tone = c.bad ? 'bad' : 'good';
+    title = 'ไม่มีแรงหนีศูนย์ดึงลูกตุ้มออก';
+    body = c.bad === 'zero'
+      ? 'มุม 0° ทำให้เชือกอยู่ในแนวดิ่ง องค์ประกอบแนวนอนของแรงตึงเป็นศูนย์ จึงไม่เกิดวงกลม'
+      : c.bad === 'ninety'
+        ? 'มุม 90° ทำให้ cos θ = 0 แรงตึงในแบบจำลองนี้ไม่นิยาม เลือกมุมน้อยกว่า 90°'
+        : `แรงตึง ${f(c.tension)} N แยกเป็น T cos θ = mg ขึ้น และ T sin θ = mv²/r เข้าศูนย์กลาง มุมกับอัตราเร็วสัมพันธ์กันโดย tan θ = v²/(rg) ได้ v = ${f(c.v)} m/s`;
+  } else {
+    const info = wallInfo();
+    if (!info.safe) {
+      tone = 'bad';
+      title = 'แรงเสียดทานขึ้นไม่พอน้ำหนัก';
+      body = `μN = ${f(info.fmax)} N แต่ mg = ${f(info.weight)} N ต้องมี v ≥ ${f(info.vmin)} m/s ผนังยังดันเข้าศูนย์กลางด้วย N แต่รถไถลลง เพราะแรงเสียดทานรับน้ำหนักไม่ไหว`;
+    } else {
+      tone = 'good';
+      title = 'ผนังผลักเข้าศูนย์กลาง แรงเสียดทานชี้ขึ้น';
+      body = `N = mv²/r = ${f(info.N)} N คือแรงสู่ศูนย์กลางในแนวราบ ส่วน μN = ${f(info.fmax)} N ≥ mg = ${f(info.weight)} N จึงไม่ตกลง ความรู้สึกถูกเหวี่ยงออกเป็นแรงเทียมในกรอบที่หมุนไปกับรถ`;
+    }
+  }
+  const box = $('miscon');
+  box.className = 'miscon ' + tone;
+  $('misTitle').textContent = title;
+  $('misBody').textContent = body;
+}
+
+function renderBanner() {
+  const el = $('banner');
+  let text = '';
+  let tone = 'good';
+  if (state.mode <= 2) {
+    const p = currentP();
+    const T = flightTime(p);
+    const ap = apex(p);
+    if (T <= 0) { text = 'มุม 0° จากพื้นระดับเดียวกัน วัตถุไม่ลอย'; tone = 'warn'; }
+    else if (state.t >= T - 1e-4) { text = 'ตกถึงพื้นแล้ว'; tone = 'good'; }
+    else if (ap.t > 0.05 && Math.abs(state.t - ap.t) < 0.15) { text = 'ใกล้จุดสูงสุด — vy ≈ 0 แต่ vx และ g ยังไม่เป็นศูนย์'; tone = 'warn'; }
+  } else if (state.mode === 4 && state.scenario === 'level') {
+    const info = levelInfo();
+    text = info.safe ? 'อยู่ในวงได้ แรงเสียดทานพอ' : 'ไถลออกตามแนวสัมผัส เพราะแรงสู่ศูนย์กลางไม่พอ';
+    tone = info.safe ? 'good' : 'bad';
+  } else if (state.mode === 4 && state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    if (b.degenerate) { text = 'มุมชันเกือบตั้งฉาก'; tone = 'bad'; }
+    else if (state.v > b.vmax + 0.05) { text = 'เร็วเกิน — แนวโน้มไถลขึ้นด้านนอก'; tone = 'bad'; }
+    else if (state.v < b.vmin - 0.05) { text = 'ช้าเกิน — แนวโน้มไถลลงด้านใน'; tone = 'bad'; }
+    else { text = 'อัตราเร็วอยู่ในช่วงปลอดภัย'; tone = 'good'; }
+  } else if (state.mode === 4 && state.scenario === 'wall') {
+    const info = wallInfo();
+    if (!info.safe && state.t > 0 && 0.5 * info.aDown * state.t * state.t >= 8) {
+      text = 'ไถลลงถึงพื้นถังแล้ว'; tone = 'bad';
+    } else if (!info.safe) { text = 'แรงเสียดทานไม่พอ กำลังไถลลง'; tone = 'bad'; }
+    else { text = 'ไต่ถังอยู่ได้'; tone = 'good'; }
+  } else if (state.mode === 4 && state.scenario === 'conical') {
+    const c = conicalInfo();
+    text = c.bad ? 'มุมนี้ไม่เกิดลูกตุ้มกรวยคงตัว' : `วงกลมคงตัว v = ${f(c.v)} m/s`;
+    tone = c.bad ? 'warn' : 'good';
+  }
+  if (!text) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = 'banner ' + tone;
+  el.textContent = text;
+}
+
+function renderLegend() {
+  const rows = [];
+  const add = (color, text, dash) => rows.push(`<div><i style="background:${dash ? 'transparent' : color};border-top:${dash ? '2px dashed ' + color : '0'}"></i>${text}</div>`);
+  if (state.mode <= 2) {
+    add('#e8fffb', 'วิถีที่เคลื่อนที่แล้ว');
+    if (state.mode === 2) add('#fbbf24', 'ไม่มีแรงต้าน', true);
+    if (state.mode === 1 && state.compare && state.thetaDeg !== 45) add('#d8b4fe', 'มุมคู่ 90° − θ', true);
+    state.history.forEach((h) => add(h.color, 'เก็บไว้ ' + h.label));
+  } else {
+    if (state.showV) add('#7ef0dc', 'ความเร็ว v');
+    if (state.showA) add('#fb7185', state.mode === 3 || state.scenario === 'conical' ? 'ac เข้าศูนย์กลาง' : 'แรง/ความเร่ง');
+    add('rgba(255,255,255,.7)', 'แนวเส้นสัมผัส', true);
+  }
+  setHTML($('legend'), rows.join(''));
+}
+
+function renderStatus() {
+  const m = state.mode;
+  const T = m <= 2 ? flightTime(currentP()) : Infinity;
+  let st = 'พร้อม';
+  if (m <= 2 && T <= 0) st = 'ไม่ลอยตัว';
+  else if (m <= 2 && state.t >= T - 1e-4 && T > 0) st = 'ถึงพื้นแล้ว';
+  else if (state.playing) st = 'กำลังเคลื่อนที่ ×' + f(state.speed, state.speed === 1 ? 1 : 1);
+  else if (state.t > 0) st = 'หยุดชั่วคราว';
+  $('statusPill').textContent = st;
+  $('playBtn').textContent = state.playing ? 'หยุดชั่วคราว' : 'เล่น';
+  let prog = 0;
+  if (m <= 2 && T > 0) prog = clamp(state.t / T, 0, 1);
+  else if (Number.isFinite(state.omega) && state.omega > 0) prog = ((state.omega * state.t) % (Math.PI * 2)) / (Math.PI * 2);
+  $('prog').style.width = (prog * 100) + '%';
+}
+
+function setupCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(10, rect.width);
+  const h = Math.max(10, rect.height);
+  const W = Math.floor(w * dpr);
+  const H = Math.floor(h * dpr);
+  if (canvas.width !== W || canvas.height !== H) {
+    canvas.width = W;
+    canvas.height = H;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 3) return;
+  const ang = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,.45)';
+  ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  const head = Math.min(11, len * 0.38);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(ang - 0.38), y2 - head * Math.sin(ang - 0.38));
+  ctx.lineTo(x2 - head * Math.cos(ang + 0.38), y2 - head * Math.sin(ang + 0.38));
+  ctx.closePath();
+  ctx.fill();
+  if (label) {
+    ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.6)';
+    ctx.strokeText(label, x2 + 6, y2 - 6);
+    ctx.fillStyle = color;
+    ctx.fillText(label, x2 + 6, y2 - 6);
+  }
+  ctx.restore();
+}
+
+function arrowFrom(ctx, x, y, dx, dy, radius, color, label) {
+  const len = Math.hypot(dx, dy);
+  if (len < 8) return;
+  const ux = dx / len;
+  const uy = dy / len;
+  drawArrow(ctx, x + ux * radius, y + uy * radius, x + dx, y + dy, color, label);
+}
+
+function drawBall(ctx, x, y, r) {
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, 1, x, y, r);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.45, '#7ef0dc');
+  g.addColorStop(1, '#0f766e');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawCar(ctx, x, y, ang, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = color;
+  roundRect(ctx, -18, -9, 36, 18, 4);
+  ctx.fill();
+  ctx.fillStyle = '#d7f7ff';
+  ctx.fillRect(2, -6, 9, 12);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-13, -12, 7, 4);
+  ctx.fillRect(6, -12, 7, 4);
+  ctx.fillRect(-13, 8, 7, 4);
+  ctx.fillRect(6, 8, 7, 4);
+  ctx.restore();
+}
+
+function strokeWorld(ctx, pts, WX, WY, color, width, dash) {
+  if (!pts.length) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = 'round';
+  ctx.setLineDash(dash || []);
+  pts.forEach((p, i) => {
+    const x = WX(p.x);
+    const y = WY(Math.max(0, p.y));
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.restore();
+}
+
+function niceStep(span, target) {
+  const raw = Math.abs(span) / Math.max(1, target) || 1;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / pow;
+  const mult = n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10;
+  return mult * pow;
+}
+
+function drawProjectile(ctx, w, h) {
+  const p = currentP();
+  const T = flightTime(p);
+  const full = samplePath(p, Math.max(T, 0.001), 160);
+  const ideal = state.mode === 2 ? samplePath({ ...p, mode: 1, k: 0 }, Math.max(flightTime({ ...p, mode: 1, k: 0 }), 0.001), 120) : null;
+  const comp = (state.mode === 1 && state.compare && state.thetaDeg !== 45)
+    ? samplePath({ ...p, thetaDeg: 90 - state.thetaDeg }, flightTime({ ...p, thetaDeg: 90 - state.thetaDeg }), 120)
+    : null;
+  let maxX = 8;
+  let maxY = Math.max(4, state.h0 + 2);
+  const grow = (pts) => pts && pts.forEach((q) => { maxX = Math.max(maxX, q.x); maxY = Math.max(maxY, q.y); });
+  grow(full); grow(ideal); grow(comp);
+  state.history.forEach((hist) => grow(hist.pts));
+  const xSpan = Math.max(8, maxX * 1.12);
+  const ySpan = Math.max(4, maxY * 1.2);
+  const originX = 58;
+  const groundY = h - 36;
+  const scale = Math.min((w - originX - 28) / xSpan, (groundY - 28) / ySpan);
+  const WX = (x) => originX + x * scale;
+  const WY = (y) => groundY - y * scale;
+
+  const sky = ctx.createLinearGradient(0, 0, 0, groundY);
+  sky.addColorStop(0, '#14384a');
+  sky.addColorStop(0.62, '#1f6d78');
+  sky.addColorStop(1, '#e6c98a');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, groundY);
+  const grd = ctx.createLinearGradient(0, groundY, 0, h);
+  grd.addColorStop(0, '#2d6844');
+  grd.addColorStop(1, '#163326');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, groundY, w, h - groundY);
+
+  let stepM = niceStep(Math.max(xSpan, ySpan), 6);
+  while (stepM * scale < 34) stepM *= 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, groundY + 1);
+  ctx.clip();
+  ctx.lineWidth = 1;
+  ctx.font = '11px Consolas, monospace';
+  ctx.strokeStyle = 'rgba(255,255,255,.14)';
+  ctx.fillStyle = 'rgba(255,255,255,.72)';
+  for (let x = 0; x <= xSpan + 1e-6; x += stepM) {
+    const sx = WX(x);
+    ctx.beginPath();
+    ctx.moveTo(sx, WY(ySpan));
+    ctx.lineTo(sx, groundY);
+    ctx.stroke();
+    ctx.fillText(String(Math.round(x * 10) / 10), sx + 3, groundY - 4);
+  }
+  for (let y = 0; y <= ySpan + 1e-6; y += stepM) {
+    const sy = WY(y);
+    ctx.beginPath();
+    ctx.moveTo(WX(0), sy);
+    ctx.lineTo(Math.min(w - 8, WX(xSpan)), sy);
+    ctx.stroke();
+    if (y > 0) ctx.fillText(String(Math.round(y * 10) / 10), 8, sy - 3);
+  }
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,.8)';
+  ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('y (m)', 8, 18);
+  ctx.fillText('x (m)', w - 48, groundY - 4);
+
+  if (state.h0 > 0) {
+    ctx.fillStyle = '#6d5646';
+    ctx.fillRect(WX(-2.2), WY(state.h0), Math.max(8, WX(0) - WX(-2.2)), groundY - WY(state.h0));
+    ctx.fillStyle = '#d9c3a4';
+    ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText('h₀', WX(-2.2), WY(state.h0 / 2));
+  }
+
+  state.history.forEach((hist) => strokeWorld(ctx, hist.pts, WX, WY, hist.color, 1.6, []));
+  if (ideal) strokeWorld(ctx, ideal, WX, WY, '#fbbf24', 1.7, [7, 5]);
+  if (comp) strokeWorld(ctx, comp, WX, WY, '#d8b4fe', 1.7, [4, 4]);
+  strokeWorld(ctx, full, WX, WY, 'rgba(232,255,251,.35)', 1.5, []);
+  const traveled = samplePath(p, Math.min(state.t, T), Math.max(2, Math.ceil(state.t * 40)));
+  strokeWorld(ctx, traveled, WX, WY, '#f8fafc', 2.4, []);
+  ctx.fillStyle = '#f8fafc';
+  traveled.forEach((q, i) => {
+    if (i % 5 !== 0) return;
+    ctx.beginPath();
+    ctx.arc(WX(q.x), WY(Math.max(0, q.y)), 2.1, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const ap = apex(p);
+  if (ap.H > 0.2 && T > 0) {
+    ctx.save();
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(251,191,36,.85)';
+    ctx.beginPath();
+    ctx.moveTo(WX(0), WY(ap.H));
+    ctx.lineTo(WX(ap.x), WY(ap.H));
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText('H = ' + f(ap.H) + ' m', Math.max(8, WX(ap.x) - 78), WY(ap.H) - 10);
+    ctx.beginPath();
+    ctx.moveTo(WX(ap.x), WY(ap.H) - 5);
+    ctx.lineTo(WX(ap.x) + 5, WY(ap.H));
+    ctx.lineTo(WX(ap.x), WY(ap.H) + 5);
+    ctx.lineTo(WX(ap.x) - 5, WY(ap.H));
+    ctx.fill();
+  }
+  if (T > 0) {
+    const land = full[full.length - 1];
+    ctx.fillStyle = '#d8fff6';
+    ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText('R = ' + f(Math.max(0, land.x)) + ' m', WX(Math.max(0, land.x)) + 6, groundY + 16);
+  }
+  state.history.forEach((hist, i) => {
+    const last = hist.pts[hist.pts.length - 1];
+    const sx = WX(last.x);
+    ctx.fillStyle = hist.color;
+    ctx.font = '11px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText(hist.label, sx > w - 90 ? sx - 64 : sx + 4, groundY - 18 - (i % 4) * 13);
+  });
+
+  const s = projAt(p, Math.min(state.t, T));
+  const bx = WX(Math.max(0, s.x));
+  const by = WY(Math.max(0, s.y));
+  const fade = 1 / (1 + Math.max(0, s.y) * 0.12);
+  ctx.fillStyle = `rgba(0,0,0,${0.28 * fade})`;
+  ctx.beginPath();
+  ctx.ellipse(bx, groundY, 7 + 10 * (1 - fade), 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  const ballX = bx;
+  const ballY = by - 8;
+
+  const lx = WX(0);
+  const ly = WY(state.h0);
+  drawArrow(ctx, lx, ly, lx + 46, ly, 'rgba(255,255,255,.75)', 'x');
+  drawArrow(ctx, lx, ly, lx, ly - 46, 'rgba(255,255,255,.75)', 'y');
+  ctx.strokeStyle = 'rgba(255,255,255,.85)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(lx, ly, 28, 0, -rad(state.thetaDeg), true);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+  const amid = -rad(state.thetaDeg) / 2;
+  ctx.fillText(state.thetaDeg + '°', lx + Math.cos(amid) * 44, ly + Math.sin(amid) * 44);
+
+  if (state.showV) {
+    let vScale = 72 / Math.max(state.u, 8);
+    const sp = Math.hypot(s.vx, s.vy) || 1;
+    if (sp * vScale > 120) vScale = 120 / sp;
+    const vxx = s.vx * vScale;
+    const vyy = -s.vy * vScale;
+    ctx.save();
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = 'rgba(255,255,255,.4)';
+    ctx.beginPath();
+    ctx.moveTo(ballX + vxx, ballY);
+    ctx.lineTo(ballX + vxx, ballY + vyy);
+    ctx.lineTo(ballX, ballY + vyy);
+    ctx.stroke();
+    ctx.restore();
+    arrowFrom(ctx, ballX, ballY, vxx, 0, 9, '#7ef0dc', 'vx');
+    arrowFrom(ctx, ballX, ballY, 0, vyy, 9, '#fbbf24', 'vy');
+    arrowFrom(ctx, ballX, ballY, vxx, vyy, 9, '#ffffff', 'v');
+  }
+  if (state.showA) {
+    let aScale = 54 / G;
+    const am = Math.hypot(s.ax, s.ay) || G;
+    if (am * aScale > 96) aScale = 96 / am;
+    arrowFrom(ctx, ballX + 26, ballY, s.ax * aScale, -s.ay * aScale, 4, '#fb7185', state.mode === 1 ? 'g' : 'a');
+  }
+  drawBall(ctx, ballX, ballY, 8);
+  if (state.t >= T - 1e-4 && T > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.beginPath();
+    ctx.arc(bx, groundY, 12, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function labBackground(ctx, w, h) {
+  const g = ctx.createRadialGradient(w * 0.5, h * 0.45, 30, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+  g.addColorStop(0, '#163848');
+  g.addColorStop(1, '#07141c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function drawCircular(ctx, w, h) {
+  labBackground(ctx, w, h);
+  const ac = state.v * state.v / state.r;
+  const cx = w * 0.5;
+  const cy = h * 0.52;
+  const Rpx = Math.min(w, h) * 0.3;
+  const scale = Rpx / state.r;
+  ctx.strokeStyle = 'rgba(125, 211, 208, .35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, Rpx, 0, Math.PI * 2);
+  ctx.stroke();
+  const phi = state.omega * state.t;
+  for (let i = 1; i <= 18; i++) {
+    const ph = phi - i * 0.09;
+    ctx.globalAlpha = 0.45 * (1 - i / 18);
+    ctx.fillStyle = '#7ef0dc';
+    ctx.beginPath();
+    ctx.arc(cx + Rpx * Math.cos(ph), cy - Rpx * Math.sin(ph), 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const px = cx + Rpx * Math.cos(phi);
+  const py = cy - Rpx * Math.sin(phi);
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(px, py);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#9ec4cc';
+  ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('r = ' + f(state.r, 1) + ' m', (cx + px) / 2, (cy + py) / 2 - 16);
+  ctx.fillStyle = '#e7f6f3';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillText('ศูนย์กลาง', cx + 8, cy - 8);
+  const vx = -state.v * Math.sin(phi);
+  const vy = state.v * Math.cos(phi);
+  const vLen = Math.min(96, 18 + state.v * 2.1);
+  const sp = Math.hypot(vx, vy) || 1;
+  if (state.showV) {
+    arrowFrom(ctx, px, py, vx / sp * vLen, -vy / sp * vLen, 10, '#7ef0dc', 'v');
+  }
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,.75)';
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + (vx / sp) * 110, py - (vy / sp) * 110);
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.fillText('แนวสัมผัส', px + (vx / sp) * 78, py - (vy / sp) * 78);
+  if (state.showA) {
+    const aLen = clamp(20 + ac * 0.35, 28, 120);
+    const fLen = clamp(20 + state.m * ac * 0.22, 28, 120);
+    const dx = cx - px;
+    const dy = cy - py;
+    const mag = Math.hypot(dx, dy) || 1;
+    arrowFrom(ctx, px, py, dx / mag * aLen, dy / mag * aLen, 10, '#fb7185', 'ac');
+    const ox = -dy / mag * 16;
+    const oy = dx / mag * 16;
+    drawArrow(ctx, px + ox, py + oy, px + ox + dx / mag * fLen, py + oy + dy / mag * fLen, '#fdba74', 'Fc');
+  }
+  drawBall(ctx, px, py, 9);
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('วงกลมสม่ำเสมอ มุมมองจากด้านบน', 16, 24);
+}
+
+function levelPose() {
+  if (levelInfo().safe) {
+    const phi = state.omega * state.t;
+    return {
+      x: state.r * Math.cos(phi),
+      y: state.r * Math.sin(phi),
+      vx: -state.v * Math.sin(phi),
+      vy: state.v * Math.cos(phi),
+      off: false,
+      trail: null
+    };
+  }
+  if (!state.dyn) state.dyn = { x: state.r, y: 0, vx: 0, vy: state.v, off: false, trail: [] };
+  return state.dyn;
+}
+
+function drawLevel(ctx, w, h) {
+  labBackground(ctx, w, h);
+  const pose = levelPose();
+  const info = levelInfo();
+  const rho = Math.hypot(pose.x, pose.y);
+  const viewR = Math.max(state.r * 1.45, Math.min(rho * 1.2, state.r * 3.2));
+  const cx = w * 0.5;
+  const cy = h * 0.54;
+  const scale = Math.min(w, h) * 0.36 / viewR;
+  const map = (x, y) => ({ x: cx + x * scale, y: cy - y * scale });
+  const road = map(state.r, 0).x - cx;
+  ctx.strokeStyle = '#3e4c59';
+  ctx.lineWidth = Math.max(14, 1.3 * scale);
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.abs(road), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 6]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, Math.abs(road), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (pose.trail) {
+    ctx.beginPath();
+    pose.trail.forEach((pt, i) => {
+      const s = map(pt.x, pt.y);
+      if (i === 0) ctx.moveTo(s.x, s.y);
+      else ctx.lineTo(s.x, s.y);
+    });
+    ctx.strokeStyle = '#fb7185';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  const car = map(pose.x, pose.y);
+  const center = map(0, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,.3)';
+  ctx.beginPath();
+  ctx.moveTo(center.x, center.y);
+  ctx.lineTo(car.x, car.y);
+  ctx.stroke();
+  const sp = Math.hypot(pose.vx, pose.vy) || 1;
+  const tang = { x: pose.vx / sp, y: -pose.vy / sp };
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,.8)';
+  ctx.beginPath();
+  ctx.moveTo(car.x, car.y);
+  ctx.lineTo(car.x + tang.x * 100, car.y + tang.y * 100);
+  ctx.stroke();
+  ctx.restore();
+  if (state.showV) arrowFrom(ctx, car.x, car.y, tang.x * Math.min(90, 16 + state.v * 2), tang.y * Math.min(90, 16 + state.v * 2), 12, '#7ef0dc', 'v');
+  if (state.showA) {
+    const dx = center.x - car.x;
+    const dy = center.y - car.y;
+    const mag = Math.hypot(dx, dy) || 1;
+    const len = info.safe ? 70 : 36;
+    arrowFrom(ctx, car.x, car.y, dx / mag * len, dy / mag * len, 12, '#c4b5fd', info.safe ? 'f = Fc' : 'f สูงสุด');
+  }
+  drawCar(ctx, car.x, car.y, Math.atan2(tang.y, tang.x), info.safe ? '#34d399' : '#fb7185');
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('รถเลี้ยวโค้งราบ · มุมมองด้านบน', 16, 24);
+}
+
+function drawBank(ctx, w, h) {
+  labBackground(ctx, w, h);
+  const b = bankLimits(state.r, state.thetaDeg, state.mu);
+  const th = rad(Math.min(state.thetaDeg, 80));
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('ภาพตัดถนนเอียง ศูนย์กลางวงอยู่ทางซ้าย', 16, 24);
+  const baseY = h * 0.8;
+  const lenCapH = (baseY - 80) / Math.max(0.2, Math.sin(th));
+  const len = Math.min(w * 0.46, lenCapH);
+  const x1 = 70;
+  const y1 = baseY;
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 12;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x1 + len * Math.cos(th), y1 - len * Math.sin(th));
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.8)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(x1, y1, 36, 0, -th, true);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(state.thetaDeg + '°', x1 + 40, y1 - 10);
+  let dir = 0;
+  if (!b.degenerate && state.v > b.vmax + 0.05) dir = 1;
+  else if (!b.degenerate && state.v < b.vmin - 0.05) dir = -1;
+  const shift = dir * Math.min(64, state.t * 28);
+  let s = len * 0.5 + shift;
+  s = clamp(s, 36, len - 24);
+  const px = x1 + s * Math.cos(th);
+  const py = y1 - s * Math.sin(th);
+  const nx = -Math.sin(th);
+  const ny = -Math.cos(th);
+  const carX = px + nx * 16;
+  const carY = py + ny * 16;
+  drawCar(ctx, carX, carY, -th, dir === 0 ? '#34d399' : '#fb7185');
+  if (state.showA) {
+    drawArrow(ctx, carX, carY, carX, carY + 68, '#fca5a5', 'mg');
+    drawArrow(ctx, carX, carY, carX + nx * 78, carY + ny * 78, '#93c5fd', 'N');
+    const upX = Math.cos(th);
+    const upY = -Math.sin(th);
+    let fric = 0;
+    if (Math.abs(state.v - b.vdesign) > 0.2) fric = state.v > b.vdesign ? -1 : 1;
+    if (fric !== 0) drawArrow(ctx, carX, carY, carX + upX * 48 * fric, carY + upY * 48 * fric, '#c4b5fd', 'f');
+    if (nx < 0) drawArrow(ctx, carX, carY + 8, carX + nx * 64, carY + 8, '#fdba74', 'เข้าศูนย์กลาง');
+  }
+  ctx.fillStyle = '#9ec4cc';
+  ctx.fillText('ลูกศรแรงแสดงทิศทาง', 16, h - 18);
+  drawInset(ctx, w - 150, 56, 120, state.r + dir * Math.min(state.r * 0.35, state.t * 1.1), state.omega * state.t, dir === 0);
+}
+
+function drawConical(ctx, w, h) {
+  labBackground(ctx, w, h);
+  const c = conicalInfo();
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('ลูกตุ้มกรวย', 16, 24);
+  if (c.bad) {
+    ctx.font = '16px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText(c.bad === 'zero' ? 'มุม 0° ลูกตุ้มห้อยนิ่ง' : 'มุม 90° แบบจำลองนี้ไม่นิยาม', 40, h / 2);
+    return;
+  }
+  const availH = h - 100;
+  const availW = (w - 70) / 2;
+  const vertical = c.L * Math.cos(rad(state.thetaDeg)) + state.r * 0.28;
+  const scale = Math.min(availH / vertical, availW / state.r);
+  const cx = w * 0.48;
+  const pivotY = 92;
+  const rx = state.r * scale;
+  const hpx = c.L * Math.cos(rad(state.thetaDeg)) * scale;
+  const ry = rx * 0.24;
+  const cy = pivotY + hpx;
+  ctx.fillStyle = '#9fb0b8';
+  ctx.fillRect(cx - 78, pivotY - 22, 156, 8);
+  ctx.beginPath();
+  ctx.arc(cx, pivotY, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx, pivotY);
+  ctx.lineTo(cx, cy);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + rx, cy);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(125,211,208,.45)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.28)';
+  ctx.beginPath();
+  ctx.moveTo(cx, pivotY);
+  ctx.lineTo(cx - rx, cy);
+  ctx.moveTo(cx, pivotY);
+  ctx.lineTo(cx + rx, cy);
+  ctx.stroke();
+  const phi = c.omega * state.t;
+  const bobX = cx + rx * Math.cos(phi);
+  const bobY = cy + ry * Math.sin(phi);
+  ctx.strokeStyle = '#e7f6f3';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx, pivotY);
+  ctx.lineTo(bobX, bobY);
+  ctx.stroke();
+  ctx.fillStyle = '#9ec4cc';
+  ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('L = ' + f(c.L) + ' m', cx + 8, (pivotY + cy) / 2);
+  ctx.fillText('θ', cx + 18, pivotY + 36);
+  ctx.fillText('r', cx + rx * 0.35, cy - 8);
+  if (state.showA) {
+    const sdx = cx - bobX;
+    const sdy = pivotY - bobY;
+    const sm = Math.hypot(sdx, sdy) || 1;
+    arrowFrom(ctx, bobX, bobY, sdx / sm * 70, sdy / sm * 70, 10, '#93c5fd', 'T');
+    arrowFrom(ctx, bobX, bobY, 0, 58, 10, '#fca5a5', 'mg');
+    arrowFrom(ctx, bobX, bobY, (cx - bobX) * 0.55, 0, 10, '#fb7185', 'T sinθ');
+  }
+  if (state.showV) {
+    let sdx = -Math.sin(phi) * rx;
+    let sdy = Math.cos(phi) * ry;
+    const sm = Math.hypot(sdx, sdy) || 1;
+    const ox = (-sdy / sm) * 18;
+    const oy = (sdx / sm) * 18;
+    arrowFrom(ctx, bobX + ox, bobY + oy, (sdx / sm) * 48, (sdy / sm) * 48, 6, '#7ef0dc', 'v');
+  }
+  drawBall(ctx, bobX, bobY, 8);
+}
+
+function drawWall(ctx, w, h) {
+  labBackground(ctx, w, h);
+  const info = wallInfo();
+  const drop = info.aDown > 0 ? Math.min(8, 0.5 * info.aDown * state.t * state.t) : 0;
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('รถไต่ถัง · ภาพตัด และมุมมองบน', 16, 24);
+  const availW = Math.min(w * 0.46, 340);
+  const availH = h - 90;
+  const scale = Math.min(availW / (2 * state.r), availH / 8);
+  const left = 46;
+  const right = left + 2 * state.r * scale;
+  const floorY = h - 42;
+  const topY = floorY - 8 * scale;
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(left, topY);
+  ctx.lineTo(left, floorY);
+  ctx.lineTo(right, floorY);
+  ctx.lineTo(right, topY);
+  ctx.stroke();
+  const rideH = Math.max(0, 7 - drop);
+  const bx = right - 18;
+  const by = floorY - rideH * scale;
+  ctx.fillStyle = '#9ec4cc';
+  ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('r', (left + right) / 2 - 6, floorY + 18);
+  ctx.beginPath();
+  ctx.moveTo(left, floorY + 8);
+  ctx.lineTo(right, floorY + 8);
+  ctx.strokeStyle = 'rgba(255,255,255,.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  drawCar(ctx, bx, by, -Math.PI / 2, info.safe ? '#34d399' : '#fb7185');
+  if (state.showA) {
+    const mid = (left + right) / 2;
+    drawArrow(ctx, bx, by, mid, by, '#93c5fd', 'N');
+    drawArrow(ctx, bx, by, bx, by - 48, '#c4b5fd', 'f');
+    drawArrow(ctx, bx + 14, by, bx + 14, by + 52, '#fca5a5', 'mg');
+  }
+  if (!info.safe && state.showV) drawArrow(ctx, bx - 36, by, bx - 36, by + 46, '#fbbf24', 'ไถลลง');
+  drawInset(ctx, w - 150, 58, 120, state.r, state.omega * state.t, info.safe);
+}
+
+function drawInset(ctx, x, y, size, rho, phi, safe) {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const rpx = size * 0.36 * clamp(state.r / Math.max(rho, 0.1), 0.45, 1);
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,18,28,.72)';
+  roundRect(ctx, x, y, size, size, 10);
+  ctx.fill();
+  ctx.strokeStyle = '#3e4c59';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, rpx, 0, Math.PI * 2);
+  ctx.stroke();
+  const px = cx + rpx * (rho / state.r) * Math.cos(phi);
+  const py = cy - rpx * (rho / state.r) * Math.sin(phi);
+  ctx.fillStyle = safe ? '#34d399' : '#fb7185';
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '11px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText('บน', x + 8, y + 16);
+  ctx.restore();
+}
+
+function drawSim() {
+  const { ctx, w, h } = setupCanvas($('sim'));
+  ctx.clearRect(0, 0, w, h);
+  if (state.mode <= 2) drawProjectile(ctx, w, h);
+  else if (state.mode === 3) drawCircular(ctx, w, h);
+  else if (state.scenario === 'level') drawLevel(ctx, w, h);
+  else if (state.scenario === 'bank') drawBank(ctx, w, h);
+  else if (state.scenario === 'conical') drawConical(ctx, w, h);
+  else drawWall(ctx, w, h);
+}
+
+function niceTicks(a, b, target) {
+  const step = niceStep(b - a, target);
+  const start = Math.ceil((a + step * 1e-6) / step) * step;
+  const ticks = [];
+  for (let v = start; v <= b + step * 0.01 && ticks.length < 8; v += step) ticks.push(v);
+  return ticks;
+}
+function fmtTick(n) {
+  const a = Math.abs(n);
+  if (a >= 100) return n.toFixed(0);
+  if (a >= 10) return n.toFixed(1);
+  return n.toFixed(a >= 1 ? 1 : 2);
+}
+
+function drawChart(canvas, o) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#091820';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText(o.title || '', 8, 16);
+  const pad = { l: 46, r: 12, t: 28, b: 28 };
+  let x0 = o.xMin;
+  let x1 = o.xMax;
+  let y0 = o.yMin;
+  let y1 = o.yMax;
+  if (!Number.isFinite(x0) || !Number.isFinite(x1) || x1 <= x0) { x0 = 0; x1 = 1; }
+  if (!Number.isFinite(y0) || !Number.isFinite(y1) || y1 <= y0) { y0 = -1; y1 = 1; }
+  const yp = (y1 - y0) * 0.12;
+  y0 -= yp;
+  y1 += yp;
+  const X = (x) => pad.l + (x - x0) / (x1 - x0) * (w - pad.l - pad.r);
+  const Y = (y) => pad.t + (y1 - y) / (y1 - y0) * (h - pad.t - pad.b);
+  ctx.font = '10px Consolas, monospace';
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(150,190,200,.16)';
+  ctx.fillStyle = '#7f9aa3';
+  niceTicks(x0, x1, 5).forEach((t) => {
+    const px = X(t);
+    ctx.beginPath();
+    ctx.moveTo(px, pad.t);
+    ctx.lineTo(px, h - pad.b);
+    ctx.stroke();
+    ctx.fillText(fmtTick(t), px - 8, h - 10);
+  });
+  niceTicks(y0, y1, 4).forEach((t) => {
+    const py = Y(t);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, py);
+    ctx.lineTo(w - pad.r, py);
+    ctx.stroke();
+    ctx.fillText(fmtTick(t), 2, py + 3);
+  });
+  if (y0 < 0 && y1 > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,.28)';
+    ctx.beginPath();
+    ctx.moveTo(pad.l, Y(0));
+    ctx.lineTo(w - pad.r, Y(0));
+    ctx.stroke();
+  }
+  (o.hlines || []).forEach((ln) => {
+    if (!Number.isFinite(ln.y)) return;
+    ctx.save();
+    ctx.strokeStyle = ln.color || '#fbbf24';
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, Y(ln.y));
+    ctx.lineTo(w - pad.r, Y(ln.y));
+    ctx.stroke();
+    ctx.restore();
+  });
+  (o.vlines || []).forEach((ln) => {
+    if (!Number.isFinite(ln.x)) return;
+    ctx.save();
+    ctx.strokeStyle = ln.color || '#fb7185';
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(X(ln.x), pad.t);
+    ctx.lineTo(X(ln.x), h - pad.b);
+    ctx.stroke();
+    ctx.restore();
+  });
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pad.l, pad.t, w - pad.l - pad.r, h - pad.t - pad.b);
+  ctx.clip();
+  (o.series || []).forEach((s) => {
+    ctx.beginPath();
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = s.width || 2;
+    ctx.setLineDash(s.dash || []);
+    let started = false;
+    s.pts.forEach((pt) => {
+      if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) { started = false; return; }
+      const px = X(pt.x);
+      const py = Y(pt.y);
+      if (!started) { ctx.moveTo(px, py); started = true; }
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  });
+  if (o.marker && Number.isFinite(o.marker.x) && Number.isFinite(o.marker.y)) {
+    ctx.fillStyle = o.marker.color || '#fff';
+    ctx.beginPath();
+    ctx.arc(X(o.marker.x), Y(o.marker.y), 4.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawGauge(canvas, o) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#091820';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText(o.title, 8, 18);
+  const x0 = 16;
+  const x1 = w - 16;
+  const y = 70;
+  const bh = 24;
+  const min = o.min;
+  const max = o.max > min ? o.max : min + 1;
+  const X = (v) => x0 + (clamp(v, min, max) - min) / (max - min) * (x1 - x0);
+  (o.zones || []).forEach((z) => {
+    const a = X(z.from);
+    const b = X(z.to);
+    ctx.fillStyle = z.color;
+    ctx.fillRect(Math.min(a, b), y, Math.max(2, Math.abs(b - a)), bh);
+  });
+  ctx.strokeStyle = 'rgba(255,255,255,.35)';
+  ctx.strokeRect(x0, y, x1 - x0, bh);
+  if (Number.isFinite(o.marker)) {
+    const mx = X(o.marker);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(mx, y - 10);
+    ctx.lineTo(mx, y + bh + 8);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px Consolas, monospace';
+    ctx.fillText('v=' + f(o.marker, 1), clamp(mx - 18, 8, w - 70), y - 16);
+  }
+  ctx.font = '11px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillStyle = '#d7ece8';
+  (o.zones || []).forEach((z) => {
+    if (!z.label) return;
+    ctx.fillText(z.label, X((z.from + Math.min(z.to, max)) / 2) - 16, y + bh + 22);
+  });
+  if (o.note) {
+    ctx.fillStyle = '#8eb4bf';
+    ctx.fillText(o.note, 12, h - 14);
+  }
+}
+
+function drawBars(canvas, o) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  ctx.fillStyle = '#091820';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d7ece8';
+  ctx.font = '13px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.fillText(o.title, 8, 18);
+  const vals = o.bars.map((b) => (Number.isFinite(b.value) ? b.value : 0));
+  const max = Math.max(...vals, 0.001) * 1.2;
+  o.bars.forEach((b, i) => {
+    const bh = ((Number.isFinite(b.value) ? b.value : 0) / max) * (h - 78);
+    const bw = 54;
+    const x = 36 + i * 110;
+    const y = h - 32 - bh;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x, y, bw, Math.max(1, bh));
+    ctx.fillStyle = '#e7f6f3';
+    ctx.font = '12px Consolas, monospace';
+    ctx.fillText(f(b.value, 2), x, y - 6);
+    ctx.fillStyle = '#9ec4cc';
+    ctx.font = '12px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.fillText(b.label, x, h - 12);
+  });
+}
+
+function seriesRange(pts, key) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  pts.forEach((p) => {
+    const v = p[key];
+    if (!Number.isFinite(v)) return;
+    lo = Math.min(lo, v);
+    hi = Math.max(hi, v);
+  });
+  if (!Number.isFinite(lo)) return [0, 1];
+  if (hi <= lo) return [lo - 1, hi + 1];
+  return [lo, hi];
+}
+
+function renderGraphs() {
+  const g1 = $('g1');
+  const g2 = $('g2');
+  if (state.mode <= 2) {
+    const p = currentP();
+    const T = Math.max(flightTime(p), 0.001);
+    const pts = samplePath(p, T, 100).map((q) => ({ x: q.x, y: Math.max(0, q.y) }));
+    const now = projAt(p, Math.min(state.t, flightTime(p)));
+    const series = [{ pts, color: '#7ef0dc', width: 2 }];
+    if (state.mode === 2) {
+      const ideal = { ...p, mode: 1, k: 0 };
+      series.push({
+        pts: samplePath(ideal, Math.max(flightTime(ideal), 0.001), 80).map((q) => ({ x: q.x, y: Math.max(0, q.y) })),
+        color: '#fbbf24',
+        dash: [5, 4]
+      });
+    }
+    const [xMin, xMax] = seriesRange(series.flatMap((s) => s.pts), 'x');
+    const [, yMax] = seriesRange(series.flatMap((s) => s.pts), 'y');
+    drawChart(g1, {
+      title: 'วิถี y เทียบกับ x',
+      xMin, xMax, yMin: 0, yMax,
+      series,
+      marker: { x: Math.max(0, now.x), y: Math.max(0, now.y), color: '#fff' }
+    });
+    const vpts = samplePath(p, T, 80).map((q, i) => ({ x: T * i / 80, y: q.vy }));
+    const vseries = [{ pts: vpts, color: '#fbbf24', width: 2 }];
+    if (state.mode === 2) {
+      const ideal = { ...p, mode: 1, k: 0 };
+      const Ti = flightTime(ideal);
+      vseries.push({
+        pts: samplePath(ideal, Ti, 60).map((q, i) => ({ x: Ti * i / 60, y: q.vy })),
+        color: '#94a3b8',
+        dash: [4, 3]
+      });
+    }
+    const [vy0, vy1] = seriesRange(vseries.flatMap((s) => s.pts), 'y');
+    drawChart(g2, {
+      title: 'vy เทียบกับเวลา t',
+      xMin: 0, xMax: T, yMin: vy0, yMax: vy1,
+      series: vseries,
+      marker: { x: Math.min(state.t, flightTime(p)), y: now.vy, color: '#fff' }
+    });
+    return;
+  }
+  if (state.mode === 3) {
+    const fc = [];
+    const tv = [];
+    for (let v = 0; v <= 50; v += 1) fc.push({ x: v, y: state.m * v * v / state.r });
+    for (let v = 1; v <= 50; v += 1) tv.push({ x: v, y: 2 * Math.PI * state.r / v });
+    drawChart(g1, {
+      title: 'Fc เทียบกับ v (r คงที่)',
+      xMin: 0, xMax: 50, yMin: 0, yMax: state.m * 2500 / state.r,
+      series: [{ pts: fc, color: '#fdba74', width: 2 }],
+      marker: { x: state.v, y: state.m * state.v * state.v / state.r, color: '#fff' }
+    });
+    const [t0, t1] = seriesRange(tv, 'y');
+    drawChart(g2, {
+      title: 'คาบ T เทียบกับ v',
+      xMin: 1, xMax: 50, yMin: t0, yMax: t1,
+      series: [{ pts: tv, color: '#7ef0dc', width: 2 }],
+      marker: { x: state.v, y: 2 * Math.PI * state.r / state.v, color: '#fff' }
+    });
+    return;
+  }
+  if (state.scenario === 'level') {
+    const info = levelInfo();
+    const fc = [];
+    for (let v = 0; v <= 50; v += 1) fc.push({ x: v, y: state.m * v * v / state.r });
+    drawChart(g1, {
+      title: 'Fc ที่ต้องใช้ กับแรงเสียดทานสูงสุด',
+      xMin: 0, xMax: 50, yMin: 0, yMax: Math.max(info.fmax, state.m * 2500 / state.r),
+      series: [{ pts: fc, color: '#fdba74', width: 2 }],
+      hlines: [{ y: info.fmax, color: '#c4b5fd' }],
+      vlines: [{ x: info.vmax, color: '#fb7185' }],
+      marker: { x: state.v, y: info.Fc, color: info.safe ? '#34d399' : '#fb7185' }
+    });
+    const max = Math.max(10, state.v * 1.15, info.vmax * 1.25);
+    drawGauge(g2, {
+      title: 'เทียบ v กับ v_max',
+      min: 0,
+      max,
+      marker: state.v,
+      zones: [
+        { from: 0, to: Math.min(info.vmax, max), color: 'rgba(52,211,153,.55)', label: 'ปลอดภัย' },
+        { from: info.vmax, to: max, color: 'rgba(251,113,133,.55)', label: 'ไถล' }
+      ],
+      note: 'เส้นตั้งในกราฟบนคือ v_max'
+    });
+    return;
+  }
+  if (state.scenario === 'bank') {
+    const b = bankLimits(state.r, state.thetaDeg, state.mu);
+    const cap = Math.max(state.v * 1.25, Number.isFinite(b.vmax) ? b.vmax * 1.15 : 0, b.vdesign * 1.2, 8);
+    const zones = [];
+    if (b.vmin > 0) zones.push({ from: 0, to: Math.min(b.vmin, cap), color: 'rgba(251,113,133,.5)', label: 'ช้า' });
+    zones.push({
+      from: b.vmin,
+      to: Number.isFinite(b.vmax) ? Math.min(b.vmax, cap) : cap,
+      color: 'rgba(52,211,153,.55)',
+      label: 'ปลอดภัย'
+    });
+    if (Number.isFinite(b.vmax)) zones.push({ from: Math.min(b.vmax, cap), to: cap, color: 'rgba(251,113,133,.5)', label: 'เร็ว' });
+    drawGauge(g1, { title: 'ช่วงอัตราเร็วบนโค้งเอียง', min: 0, max: cap, marker: state.v, zones, note: 'ขีดขาวคือ v ปัจจุบัน' });
+    drawBars(g2, {
+      title: 'เทียบ tan θ กับ v²/(rg)',
+      bars: [
+        { label: 'tan θ', value: Number.isFinite(b.tan) ? b.tan : 0, color: '#93c5fd' },
+        { label: 'v²/(rg)', value: state.v * state.v / (state.r * G), color: '#fdba74' }
+      ]
+    });
+    return;
+  }
+  if (state.scenario === 'conical') {
+    const vs = [];
+    const ts = [];
+    const hi = clamp(Math.max(state.thetaDeg, 40), 40, 80);
+    for (let deg = 5; deg <= hi; deg += 1) {
+      const th = rad(deg);
+      vs.push({ x: deg, y: Math.sqrt(state.r * G * Math.tan(th)) });
+      ts.push({ x: deg, y: state.m * G / Math.cos(th) });
+    }
+    const c = conicalInfo();
+    drawChart(g1, {
+      title: 'v ของลูกตุ้มเทียบกับมุม',
+      xMin: 5, xMax: hi, yMin: 0, yMax: Math.max(...vs.map((p) => p.y)),
+      series: [{ pts: vs, color: '#7ef0dc', width: 2 }],
+      marker: Number.isFinite(c.v) ? { x: state.thetaDeg, y: c.v, color: '#fff' } : null
+    });
+    drawChart(g2, {
+      title: 'แรงตึงเทียบกับมุม',
+      xMin: 5, xMax: hi, yMin: 0, yMax: Math.max(...ts.map((p) => p.y)),
+      series: [{ pts: ts, color: '#93c5fd', width: 2 }],
+      marker: Number.isFinite(c.tension) ? { x: state.thetaDeg, y: c.tension, color: '#fff' } : null
+    });
+    return;
+  }
+  const info = wallInfo();
+  const fr = [];
+  for (let v = 0; v <= 50; v += 1) fr.push({ x: v, y: state.mu * state.m * v * v / state.r });
+  drawChart(g1, {
+    title: 'แรงเสียดทานสูงสุดเทียบน้ำหนัก',
+    xMin: 0, xMax: 50, yMin: 0, yMax: Math.max(info.weight, state.mu * state.m * 2500 / state.r, 1),
+    series: [{ pts: fr, color: '#c4b5fd', width: 2 }],
+    hlines: [{ y: info.weight, color: '#fca5a5' }],
+    vlines: [{ x: info.vmin, color: '#34d399' }],
+    marker: { x: state.v, y: info.fmax, color: info.safe ? '#34d399' : '#fb7185' }
+  });
+  if (!Number.isFinite(info.vmin)) {
+    drawGauge(g2, {
+      title: 'ไม่มี vmin เมื่อ μ = 0',
+      min: 0, max: Math.max(20, state.v), marker: state.v,
+      zones: [{ from: 0, to: Math.max(20, state.v), color: 'rgba(251,113,133,.55)', label: 'ตก' }],
+      note: 'ไม่มีแรงเสียดทานจึงต้านน้ำหนักไม่ได้'
+    });
+  } else {
+    const cap = Math.max(info.vmin * 1.35, state.v * 1.15, 8);
+    drawGauge(g2, {
+      title: 'เทียบ v กับ v_min',
+      min: 0, max: cap, marker: state.v,
+      zones: [
+        { from: 0, to: Math.min(info.vmin, cap), color: 'rgba(251,113,133,.55)', label: 'ตก' },
+        { from: info.vmin, to: cap, color: 'rgba(52,211,153,.55)', label: 'ไต่ได้' }
+      ],
+      note: 'ต้องมี μN ≥ mg'
+    });
+  }
+}
+
+function render() {
+  updateDerived();
+  updateVisibility();
+  renderStatus();
+  renderReadout();
+  renderEq();
+  renderAnalysis();
+  renderMiscon();
+  renderBanner();
+  renderLegend();
+  drawSim();
+  renderGraphs();
+}
+
+function bind() {
+  let lock = false;
+  const watch = (id, apply) => {
+    $(id).addEventListener('input', () => {
+      if (lock) return;
+      apply(parseFloat($(id).value));
+      onPhysicsChange();
+    });
+  };
+  watch('u', (v) => { state.u = v; });
+  watch('theta', (v) => { state.thetaDeg = v; });
+  watch('h0', (v) => { state.h0 = v; });
+  watch('m', (v) => { state.m = v; });
+  watch('k', (v) => { state.k = v; });
+  watch('mu', (v) => { state.mu = v; });
+  watch('r', (v) => {
+    state.r = v;
+    if (state.mode === 3) {
+      state.omega = state.v / state.r;
+      lock = true;
+      $('omega').value = state.omega;
+      lock = false;
+    }
+  });
+  watch('v', (v) => {
+    state.v = v;
+    state.omega = state.v / state.r;
+    lock = true;
+    $('omega').value = state.omega;
+    lock = false;
+  });
+  $('omega').addEventListener('input', () => {
+    if (lock) return;
+    state.omega = parseFloat($('omega').value);
+    state.v = clamp(state.omega * state.r, 1, 50);
+    state.omega = state.v / state.r;
+    lock = true;
+    $('v').value = state.v;
+    $('omega').value = state.omega;
+    lock = false;
+    onPhysicsChange();
+  });
+  $('showV').addEventListener('change', () => { state.showV = $('showV').checked; });
+  $('showA').addEventListener('change', () => { state.showA = $('showA').checked; });
+  $('compare').addEventListener('change', () => { state.compare = $('compare').checked; });
+  document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => enterMode(Number(b.dataset.mode))));
+  document.querySelectorAll('[data-sc]').forEach((b) => b.addEventListener('click', () => enterScenario(b.dataset.sc)));
+  $('presets').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-preset]');
+    if (btn) applyPreset(btn.dataset.preset);
+  });
+  $('playBtn').addEventListener('click', togglePlay);
+  $('resetBtn').addEventListener('click', resetSim);
+  $('apexBtn').addEventListener('click', goApex);
+  $('landBtn').addEventListener('click', goLand);
+  document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+    state.speed = parseFloat(b.dataset.speed);
+    document.querySelectorAll('[data-speed]').forEach((x) => x.classList.toggle('on', x === b));
+  }));
+  window.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea, button')) return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.key === 'r' || e.key === 'R') resetSim();
+  });
+}
+
+function selfCheck() {
+  const errs = [];
+  const eq = (a, b, msg, tol = 1e-6) => {
+    if (!Number.isFinite(a) || Math.abs(a - b) > tol * Math.max(1, Math.abs(b))) errs.push(msg);
+  };
+  const p = { mode: 1, u: 20, thetaDeg: 45, h0: 0, k: 0, m: 1 };
+  eq(flightTime(p), 2 * 20 * Math.sin(Math.PI / 4) / G, 'T');
+  eq(projAt(p, flightTime(p)).x, 400 / G, 'R');
+  eq(apex(p).H, 100 / G, 'H');
+  eq(projAt(p, flightTime(p)).y, 0, 'yT', 1e-6);
+  eq(projAt(p, apex(p).t).vy, 0, 'vy');
+  const r30 = projAt({ ...p, thetaDeg: 30 }, flightTime({ ...p, thetaDeg: 30 })).x;
+  const r60 = projAt({ ...p, thetaDeg: 60 }, flightTime({ ...p, thetaDeg: 60 })).x;
+  eq(r30, r60, 'pair');
+  eq(thetaOptDeg(20, 0), 45, 'opt');
+  const opt = thetaOptDeg(20, 15);
+  const rangeOf = (deg) => {
+    const q = { mode: 1, u: 20, thetaDeg: deg, h0: 15, k: 0, m: 1 };
+    return projAt(q, flightTime(q)).x;
+  };
+  const rOpt = rangeOf(opt);
+  if (!(rOpt >= rangeOf(opt - 1) - 1e-3 && rOpt >= rangeOf(opt + 1) - 1e-3)) errs.push('optmax');
+  const drag = { mode: 2, u: 20, thetaDeg: 45, h0: 0, k: 0.2, m: 1 };
+  if (!(projAt(drag, flightTime(drag)).x < 400 / G - 1)) errs.push('dragR');
+  const t0 = 0.35;
+  const a = projAt(drag, t0);
+  const b = projAt(drag, t0 + 1e-4);
+  eq((b.x - a.x) / 1e-4, a.vx, 'ddx', 0.02);
+  eq((b.y - a.y) / 1e-4, a.vy, 'ddy', 0.02);
+  const cliff = { mode: 1, u: 10, thetaDeg: 0, h0: 20, k: 0, m: 1 };
+  eq(flightTime(cliff), Math.sqrt(40 / G), 'cliffT', 1e-9);
+  const up = { mode: 1, u: 20, thetaDeg: 90, h0: 0, k: 0, m: 1 };
+  eq(projAt(up, flightTime(up)).x, 0, 'vertR', 1e-8);
+  eq(bankLimits(10, 0, 0.3).vmax, Math.sqrt(0.3 * G * 10), 'bank0', 1e-9);
+  const th = Math.PI / 6;
+  const vv = Math.sqrt(4 * G * Math.tan(th));
+  eq(vv * vv / 4, G * Math.tan(th), 'con');
+  const vmin = Math.sqrt(G * 4 / 0.3);
+  eq(0.3 * vmin * vmin / 4, G, 'wall');
+  return errs;
+}
+
+const __errs = selfCheck();
+if (__errs.length) console.error(__errs);
+
+bind();
+updateDerived();
+syncSliders();
+render();
+let last = 0;
+function loop(now) {
+  if (!last) last = now;
+  let dt = (now - last) / 1000;
+  last = now;
+  if (dt > 0.05) dt = 0.05;
+  if (state.playing) step(dt * state.speed);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
